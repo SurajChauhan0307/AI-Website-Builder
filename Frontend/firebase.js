@@ -9,7 +9,7 @@ const firebaseConfig = {
   apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
   authDomain: "prompticai.firebaseapp.com",
   projectId: "prompticai",
-  storageBucket: "prompticai.firebasestorage.app",
+  storageBucket: "prompticai.appspot.com",
   messagingSenderId: "135622679337",
   appId: "1:135622679337:web:071e2413d77d1d8add3538"
 };
