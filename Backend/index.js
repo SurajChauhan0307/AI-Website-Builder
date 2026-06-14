@@ -14,13 +14,16 @@ const PORT = process.env.PORT || 8000;
 app.use(express.json());
 app.use(cookieParser());
 
-// CORS CONFIG (IMPORTANT FIX)
+// ✅ FIXED CORS CONFIG
 app.use(
   cors({
     origin: [
       "http://localhost:5173",
       "http://localhost:3000",
-      "https://prompticai.vercel.app"
+
+      // ✅ VERCEL DOMAINS (IMPORTANT)
+      "https://ai-website-builder-nine-weld.vercel.app",
+      "https://ai-website-builder-lfrm5gfkj-surajc8705-3703s-projects.vercel.app"
     ],
     credentials: true,
   })
