@@ -1,48 +1,40 @@
-// import { configureStore } from "@reduxjs/toolkit";
-// import userSlice from "./userSlice";
-
-// const store = configureStore({
-//     reducer: {
-//         user: userSlice
-//     }
-// });
-
-// export default store;
-
-
-import { configureStore, combineReducers } from "@reduxjs/toolkit";
+import { combineReducers, configureStore } from "@reduxjs/toolkit";
+import userSlice from "./userSlice"; // Your perfect slice
 
 import {
-  persistStore,
   persistReducer,
-} from "redux-persist";
+  FLUSH,
+  REHYDRATE,
+  PAUSE,
+  PERSIST,
+  PURGE,
+  REGISTER,
+} from 'redux-persist';
+import baseStorage from 'redux-persist/lib/storage';
 
-import storage from "redux-persist/lib/storage";
-
-import userReducer from "./userSlice";
-import userSlice from "./userSlice";
-
-const rootReducer = combineReducers({
-  user: userSlice
-});
+// 1. Safe-guard against Bundler/SSR quirks where default exports get nested
+const storage = baseStorage && baseStorage.default ? baseStorage.default : baseStorage;
 
 const persistConfig = {
-  key: "Promptic-ai",
-   storage:storage.default,
+  key: 'ai-website-builder',
+  version: 1,
+  storage, // ✅ Now guaranteed to have getItem/setItem methods
 };
 
-const persistedReducer = persistReducer(
-  persistConfig,
-  rootReducer
-);
+const rootReducer = combineReducers({
+  user: userSlice,
+});
 
-export const store = configureStore({
+const persistedReducer = persistReducer(persistConfig, rootReducer);
+
+const store = configureStore({
   reducer: persistedReducer,
-
   middleware: (getDefaultMiddleware) =>
     getDefaultMiddleware({
-      serializableCheck: false,
+      serializableCheck: {
+        ignoredActions: [FLUSH, REHYDRATE, PAUSE, PERSIST, PURGE, REGISTER],
+      },
     }),
 });
 
-export const persistor = persistStore(store);
+export default store;
