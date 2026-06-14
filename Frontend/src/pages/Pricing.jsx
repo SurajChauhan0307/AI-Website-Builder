@@ -1,6 +1,5 @@
-import { ArrowLeft, Check, Coins } from "lucide-react"
-import React from "react"
-import { useState } from "react"
+import { ArrowLeft, Coins } from "lucide-react"
+import React, { useState } from "react"
 import { useNavigate } from "react-router-dom"
 import { motion } from "framer-motion"
 import axios from "axios"
@@ -59,6 +58,9 @@ const Pricing = () => {
   const dispatch = useDispatch()
   const [hovered, setHovered] = useState(null)
 
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+  const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID
+
   const handlePayment = async (plan) => {
     if (plan.id === "free") {
       navigate("/dashboard")
@@ -68,8 +70,9 @@ const Pricing = () => {
     try {
       const amount = plan.id === "enterprise" ? 1499 : 499
 
+      // CREATE ORDER
       const result = await axios.post(
-        `${import.meta.env.VITE_SERVER_URL}/api/payment/order`,
+        `${API_BASE_URL}/api/payment/order`,
         {
           planId: plan.id,
           amount,
@@ -81,25 +84,24 @@ const Pricing = () => {
       const order = result.data
 
       const options = {
-        key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+        key: RAZORPAY_KEY,
         amount: order.amount,
         currency: "INR",
         name: "Promptic Ai",
         description: `${plan.name} - ${plan.credits} Credits`,
-        order_id: order.id,   // ✅ IMPORTANT FIX
+        order_id: order.id,
 
         handler: async function (response) {
           try {
+            // VERIFY PAYMENT
             const verify = await axios.post(
-              `${import.meta.env.VITE_SERVER_URL}/api/payment/verify`,
+              `${API_BASE_URL}/api/payment/verify`,
               response,
               { withCredentials: true }
             )
 
             if (verify.data.success) {
-              // ✅ IMPORTANT: update redux instantly
               dispatch(setUserData(verify.data.user))
-
               navigate("/dashboard")
             }
           } catch (err) {
@@ -122,14 +124,9 @@ const Pricing = () => {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050505] text-white px-6 pt-16 pb-24">
 
-      <div className="absolute inset-0 pointer-events-none">
-        <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px]" />
-        <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[120px]" />
-      </div>
-
       <button
         onClick={() => navigate("/")}
-        className="relative z-10 mb-8 flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition cursor-pointer"
+        className="relative z-10 mb-8 flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition"
       >
         <ArrowLeft size={16} />
         Back
