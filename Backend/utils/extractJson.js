@@ -1,31 +1,17 @@
-const extractJson = (text) => {
-    if (!text || typeof text !== "string") {
-        return null;
+const extractJson = async (text) => {
+    if (!text) {
+        return
     }
+    const cleaned = text.
+        replace(/```json/gi, "")
+        .replace(/```/g, "")
+        .trim();
 
-    try {
-        const cleaned = text
-            .replace(/```json/gi, "")
-            .replace(/```/g, "")
-            .trim();
+        const openBracket = cleaned.indexOf('{')
+        const closeBracket = cleaned.lastIndexOf('}')
+        if(openBracket === -1 || closeBracket === -1) return null
+        const jsonString = cleaned.slice(openBracket, closeBracket+1)
+        return JSON.parse(jsonString)
+}
 
-        const start = cleaned.indexOf("{");
-        const end = cleaned.lastIndexOf("}");
-
-        if (start === -1 || end === -1) {
-            console.error("No JSON object found in response");
-            return null;
-        }
-
-        const jsonString = cleaned.slice(start, end + 1);
-
-        return JSON.parse(jsonString);
-
-    } catch (error) {
-        console.error("JSON Parse Error:", error);
-        console.error("Raw Response:", text);
-        return null;
-    }
-};
-
-export default extractJson;
+export default extractJson

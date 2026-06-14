@@ -1,57 +1,34 @@
-import mongoose from "mongoose";
+import mongoose from "mongoose"
 
-const websiteSchema = new mongoose.Schema(
-  {
+const messageSchema = new mongoose.Schema({
+    role: {
+        type: String,
+        enum: ["user", "ai"],
+        required: true
+    },
+    content: {
+        type: String,
+        required: true
+    }
+}, { timestamps: true })
+
+const websiteSchema = new mongoose.Schema({
     user: {
-      type: mongoose.Schema.Types.ObjectId,
-      ref: "User",
-      required: true,
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "User"
     },
-
-    title: String,
-
-    latestCode: String,
-
-    // Your added version history array
-    versions: [
-      {
-        code: String,
-        prompt: String,
-        createdAt: {
-          type: Date,
-          default: Date.now,
-        },
-      },
-    ],
-
-    conversation: [
-      {
-        role: String,
-        content: String,
-      },
-    ],
-
-    deployed: {
-      type: Boolean,
-      default: false,
+    title: {
+        type: String,
+        default: "Untitled Website"
     },
-
-    deployedUrl: String,
-
-    slug: {
-      type: String,
-      unique: true,
-      sparse: true,
+    latestCode: {
+        type: String,
+        requried: true
     },
-  },
-  {
-    timestamps: true,
-  }
-);
+    conversation: [messageSchema],
+    deployed: { type: Boolean, default: false },
+    deployUrl: { type: String },
+    slug:{type:String, unique:true, sparse:true}
+}, { timestamps: true })
 
-// Performance optimization index for public route lookups
-websiteSchema.index({ slug: 1 });
-
-const Website = mongoose.model("Website", websiteSchema);
-
-export default Website;
+export const Website = mongoose.model("Website", websiteSchema)
