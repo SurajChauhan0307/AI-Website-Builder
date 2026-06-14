@@ -13,9 +13,15 @@ const LoginModal = ({ open, onClose }) => {
   const handleGoogleAuth = async () => {
     try {
       const result = await signInWithPopup(auth, provider)
-      console.log(result)
 
+      console.log("Firebase User:", result.user)
+
+      // ✅ SAFE ENV CHECK (IMPORTANT FIX)
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+
+      if (!API_BASE_URL) {
+        throw new Error("VITE_API_BASE_URL is not defined in Vercel env")
+      }
 
       const { data } = await axios.post(
         `${API_BASE_URL}/api/auth/google`,
@@ -24,13 +30,15 @@ const LoginModal = ({ open, onClose }) => {
           email: result.user.email,
           avatar: result.user.photoURL
         },
-        { withCredentials: true }
+        {
+          withCredentials: true
+        }
       )
 
       dispatch(setUserData(data))
 
     } catch (error) {
-      console.log("Google Auth Error:", error)
+      console.log("Google Auth Error:", error.message || error)
     }
   }
 
