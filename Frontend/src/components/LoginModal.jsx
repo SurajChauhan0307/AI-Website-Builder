@@ -4,7 +4,7 @@ import { Sparkles } from "lucide-react"
 import { auth, provider } from '../../firebase'
 import { signInWithPopup } from "firebase/auth"
 import axios from 'axios'
-import {useDispatch} from 'react-redux'
+import { useDispatch } from 'react-redux'
 import { setUserData } from '../redux/userSlice'
 
 const LoginModal = ({ open, onClose }) => {
@@ -14,21 +14,29 @@ const LoginModal = ({ open, onClose }) => {
     try {
       const result = await signInWithPopup(auth, provider)
       console.log(result)
-      const {data} = await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/auth/google`, {
-        name:result.user.displayName,
-        email:result.user.email,
-        avatar:result.user.photoURL
-      }, {withCredentials:true})
+
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
+
+      const { data } = await axios.post(
+        `${API_BASE_URL}/api/auth/google`,
+        {
+          name: result.user.displayName,
+          email: result.user.email,
+          avatar: result.user.photoURL
+        },
+        { withCredentials: true }
+      )
+
       dispatch(setUserData(data))
+
     } catch (error) {
-      console.log(error)
+      console.log("Google Auth Error:", error)
     }
   }
 
   return (
     <div>
       {open && (
-
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -36,7 +44,6 @@ const LoginModal = ({ open, onClose }) => {
           onClick={onClose}
           className='fixed inset-0 flex z-[100] items-center justify-center bg-black/80 backdrop-blur-xl px-4'
         >
-
           <motion.div
             initial={{ scale: 0.88, opacity: 0, y: 60 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -111,8 +118,8 @@ const LoginModal = ({ open, onClose }) => {
                   By Continuing you agree to our{" "}
                   <span className='underline cursor-pointer hover:text-zinc-300'>
                     Terms of Service
-                  </span>
-                  {" "}and{" "}
+                  </span>{" "}
+                  and{" "}
                   <span className='underline cursor-pointer hover:text-zinc-300'>
                     Privacy Policy
                   </span>
@@ -121,11 +128,8 @@ const LoginModal = ({ open, onClose }) => {
               </div>
 
             </div>
-
           </motion.div>
-
         </motion.div>
-
       )}
     </div>
   )
