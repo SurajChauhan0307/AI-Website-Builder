@@ -2,6 +2,11 @@ import extractJson from "./extractJson.js";
 
 export const generateResponse = async (prompt) => {
     try {
+        // ⚠️ SANITY CHECK: Instantly flags if Render is missing your environment variable
+        if (!process.env.OPENROUTER_API_KEY) {
+            throw new Error("Missing OPENROUTER_API_KEY in server environment variables.");
+        }
+
         const res = await fetch(
             "https://openrouter.ai/api/v1/chat/completions",
             {
@@ -9,13 +14,16 @@ export const generateResponse = async (prompt) => {
                 headers: {
                     Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
                     "Content-Type": "application/json",
+                    // Optional OpenRouter ranking headers (highly recommended)
+                    "HTTP-Referer": "https://ai-website-builder-nine-weld.vercel.app", 
+                    "X-Title": "Promptic AI Builder"
                 },
                 body: JSON.stringify({
-                    model: "deepseek/deepseek-chat",
+                    model: "deepseek/deepseek-chat", // 💡 Note: If this fails, try swapping to "meta-llama/llama-3.1-70b-instruct" as a test
                     messages: [
                         {
                             role: "system",
-                            content: "Return ONLY valid JSON. No explanation. No markdown.",
+                            content: "Return ONLY valid JSON object representing a website template schema. No explanations, no markdown code blocks, no backticks.",
                         },
                         {
                             role: "user",
@@ -35,30 +43,33 @@ export const generateResponse = async (prompt) => {
             } catch (e) {
                 errorMessage = await res.text();
             }
-            throw new Error(errorMessage);
+            throw new Error(`OpenRouter API Failure: ${errorMessage}`);
         }
 
         const data = await res.json();
 
         if (!data || !data.choices || data.choices.length === 0) {
-            throw new Error("Invalid response structure from API");
+            throw new Error("Invalid response structure from OpenRouter API endpoints.");
         }
 
         const text = data.choices[0]?.message?.content;
 
         if (!text) {
-            throw new Error("Empty AI response");
+            throw new Error("Empty AI response content wrapper received.");
         }
 
         const parsed = extractJson(text);
 
         if (!parsed) {
-            throw new Error("AI returned invalid JSON");
+            throw new Error(`AI generated string, but failed to parse into valid JSON. Raw output: ${text.substring(0, 100)}...`);
         }
 
         return parsed;
     } catch (err) {
-        console.error("generateResponse error:", err.message);
-        return null;
+        // ✅ CRUCIAL: Keeps your server logs readable so you can diagnose issues in the Render Dashboard
+        console.error("❌ ERROR inside generateResponse.js:", err.message);
+        
+        // Throw the error instead of returning null so your website controller knows why it failed
+        throw err; 
     }
 };
