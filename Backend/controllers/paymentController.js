@@ -3,6 +3,7 @@ import { Payment } from "../models/paymentModel.js";
 import crypto from "crypto";
 import { User } from "../models/userModel.js";
 
+/* ---------------- CREATE ORDER ---------------- */
 export const createOrder = async (req, res) => {
   try {
     const { planId, amount, credits } = req.body;
@@ -28,7 +29,7 @@ export const createOrder = async (req, res) => {
 
     await Payment.create({
       userId: req.user._id,
-      planId: planId?.toLowerCase(), // ✅ FIX
+      planId: planId?.toLowerCase().trim(), // ✅ FIX
       amount,
       credits,
       razorpayOrderId: razorpayOrder.id,
@@ -42,6 +43,7 @@ export const createOrder = async (req, res) => {
   }
 };
 
+/* ---------------- VERIFY PAYMENT ---------------- */
 export const verifyPayment = async (req, res) => {
   try {
     const {
@@ -81,13 +83,23 @@ export const verifyPayment = async (req, res) => {
     payment.razorpayPaymentId = razorpay_payment_id;
     await payment.save();
 
-    const plan = payment.planId?.toLowerCase(); // ✅ FIX
+    // ✅ SAFE PLAN NORMALIZATION (IMPORTANT FIX)
+    let safePlan = (payment.planId || "free")
+      .toString()
+      .toLowerCase()
+      .trim();
+
+    // ✅ EXTRA SAFETY CHECK
+    const validPlans = ["free", "pro", "enterprise"];
+    if (!validPlans.includes(safePlan)) {
+      safePlan = "free";
+    }
 
     const updateUser = await User.findByIdAndUpdate(
       payment.userId,
       {
         $inc: { credits: payment.credits },
-        plan: plan, // ✅ SAFE ENUM VALUE
+        plan: safePlan, // ✅ FIXED ENUM SAFE VALUE
       },
       { new: true }
     );

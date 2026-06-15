@@ -3,7 +3,7 @@ import { User } from "../models/userModel.js";
 
 export const isAuthenticated = async (req, res, next) => {
   try {
-    // ✅ FIX 1: cookie OR header support
+    // ✅ token from cookie OR header
     const token =
       req.cookies?.token ||
       req.headers.authorization?.split(" ")[1];
@@ -11,33 +11,38 @@ export const isAuthenticated = async (req, res, next) => {
     if (!token) {
       return res.status(401).json({
         success: false,
-        message: "No token found"
+        message: "No token found",
       });
     }
 
-    // ✅ FIX 2: verify token safely
     let decoded;
+
     try {
       decoded = jwt.verify(token, process.env.SECRET_KEY);
     } catch (err) {
       return res.status(401).json({
         success: false,
-        message: "Invalid or expired token"
+        message: "Invalid or expired token",
       });
     }
 
-    // ✅ FIX 3: user fetch
-    const user = await User.findById(decoded._id).select("-password");
+    const user = await User.findById(decoded._id);
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: "User not found"
+        message: "User not found",
       });
     }
 
-    // ✅ attach full user
-    req.user = user;
+    // ✅ IMPORTANT FIX (credits + plan always fresh)
+    req.user = {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      credits: user.credits,
+      plan: user.plan,
+    };
 
     next();
   } catch (error) {
@@ -45,7 +50,7 @@ export const isAuthenticated = async (req, res, next) => {
 
     return res.status(500).json({
       success: false,
-      message: "Authentication middleware crash"
+      message: "Authentication middleware crash",
     });
   }
 };

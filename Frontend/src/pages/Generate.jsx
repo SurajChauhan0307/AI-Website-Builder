@@ -25,18 +25,19 @@ const Generate = () => {
     const [error, setError] = useState("")
     const { userData } = useSelector(state => state.user)
 
-    // ✅ FIX 1: Swapped env name to VITE_API_BASE_URL and integrated the production fallback string URL
     const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-website-builder-d0n1.onrender.com';
 
     const handleGenerateWebsite = async () => {
         try {
             setLoading(true)
-            setError("") // Clear errors on fresh submission
+            setError("")
 
-            // ✅ FIX 2: Replaced VITE_SERVER_URL with the stable API_BASE_URL variable layout string
             const res = await axios.post(
                 `${API_BASE_URL}/api/website/generate`,
-                { prompt },
+                { 
+                    prompt,
+                    plan: "free" // ✅ FIX: Added lowercase plan to match backend enum
+                },
                 { withCredentials: true }
             )
 
