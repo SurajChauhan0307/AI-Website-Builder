@@ -18,6 +18,10 @@ const WebsiteEditor = () => {
     const [showCode, setShowCode] = useState(false)
     const [showFullPreview, setShowFullPreview] = useState(false)
     const [showChat, setShowChat] = useState(false)
+    
+    // ✅ FIX 1: Updated variable name to VITE_API_BASE_URL and added rock-solid backup production fallback
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-website-builder-d0n1.onrender.com';
+
     const thinkingSteps = [
         "Understanding your request...",
         "Planning layout changes...",
@@ -26,15 +30,16 @@ const WebsiteEditor = () => {
         "Finalizing Update..."
     ]
 
-    const handleDeploy = async (id) => {
-    try {
-         const result = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/website/deploy/${website._id}`,{withCredentials:true})
-         window.open(`${result.data.url}`,"_blank")
-         
-    } catch (error) {
-         console.log(error)
+    // ================= HANDLE DEPLOY =================
+    const handleDeploy = async () => {
+        try {
+             // ✅ FIX 2: Aligned endpoint string sequence with fixed API_BASE_URL variable mapping
+             const result = await axios.get(`${API_BASE_URL}/api/website/deploy/${website._id}`, { withCredentials: true })
+             window.open(`${result.data.url}`, "_blank")
+        } catch (error) {
+             console.error("❌ Deploy Error:", error);
+        }
     }
-  }
 
     useEffect(() => {
         const intervalId = setInterval(() => {
@@ -43,34 +48,42 @@ const WebsiteEditor = () => {
         return () => clearInterval(intervalId)
     }, [updateLoading])
 
+    // ================= HANDLE UPDATE =================
     const handleUpdate = async () => {
+        if (!prompt.trim()) return;
         setMessages((m) => [...m, { role: "user", content: prompt }])
         setUpdateLoading(true)
+        const currentPrompt = prompt;
+        setPrompt(""); // Clear input early for UX layout compliance
+        
         try {
-            const result = await axios.post(`${import.meta.env.VITE_SERVER_URL}/api/website/update/${id}`, { prompt }, { withCredentials: true })
+            // ✅ FIX 3: Replaced template routing endpoints with unified API_BASE_URL layout wrapper
+            const result = await axios.post(`${API_BASE_URL}/api/website/update/${id}`, { prompt: currentPrompt }, { withCredentials: true })
             setMessages((m) => [...m, { role: "ai", content: result.data.message }])
             setCode(result.data.code)
         } catch (error) {
-            console.log(error)
+            console.error("❌ Update Module Error:", error)
         } finally {
             setUpdateLoading(false)
         }
     }
 
+    // ================= FETCH WEBSITE DETAILS =================
     useEffect(() => {
         const handleGetWebsite = async () => {
             try {
-                const result = await axios.get(`${import.meta.env.VITE_SERVER_URL}/api/website/getbyid/${id}`, { withCredentials: true })
+                // ✅ FIX 4: Refactored base profile requests to hit correct backend mapping cleanly
+                const result = await axios.get(`${API_BASE_URL}/api/website/getbyid/${id}`, { withCredentials: true })
                 setWebsite(result.data)
                 setCode(result.data.latestCode)
-                setMessages(result.data.conversation)
+                setMessages(result.data.conversation || [])
             } catch (error) {
-                setError(error.response.data.message)
-                console.log(error)
+                setError(error.response?.data?.message || "Failed to load layout profile configuration.")
+                console.error("❌ Fetch Details Error:", error)
             }
         }
         handleGetWebsite()
-    }, [id])
+    }, [id, API_BASE_URL])
 
     useEffect(() => {
         if (!iframeRef.current || !code) return;
@@ -117,8 +130,8 @@ const WebsiteEditor = () => {
                                 onChange={(e) => setPrompt(e.target.value)}
                                 rows={1}
                                 placeholder='Describe changes...'
-                                className='flex-1 resize-none rounded-2xl px-4 py-3 bg-white/5 border border-white/10 text-outline-none' />
-                            <button disabled={updateLoading} onClick={handleUpdate} className='px-4 py-3 rounded-2xl bg-white text-black'><Send size={18} /></button>
+                                className='flex-1 resize-none rounded-2xl px-4 py-3 bg-white/5 border border-white/10 outline-none text-white' />
+                            <button disabled={updateLoading} onClick={handleUpdate} className='px-4 py-3 rounded-2xl bg-white text-black hover:scale-105 transition disabled:opacity-50'><Send size={18} /></button>
                         </div>
                     </div>
                 </>
@@ -131,7 +144,7 @@ const WebsiteEditor = () => {
                     <div className='flex gap-2'>
                         {website.deployed ? "": <button 
                         onClick={handleDeploy}
-                        className='flex items-center gap-2 px-4 py-1.5 rounded-lg bg-linear-to-r from-indigo-500 to-purple-500 text-sm font-semibold hover:scale-105 transition'><Rocket size={14} />Deploy</button>}
+                        className='flex items-center gap-2 px-4 py-1.5 rounded-lg bg-gradient-to-r from-indigo-500 to-purple-500 text-sm font-semibold hover:scale-105 transition'><Rocket size={14} />Deploy</button>}
                       
                         <button onClick={() => setShowChat(true)} className='p-2 lg:hidden'><MessageSquare size={18} /></button>
                         <button onClick={() => setShowCode(true)} className='p-2'><Code2 size={18} /></button>
@@ -139,7 +152,7 @@ const WebsiteEditor = () => {
                     </div>
 
                 </div>
-                <iframe ref={iframeRef} className='flex-1 w-full bg-white' sandbox='allow-scripts allow-same-origin allow-forms'/>
+                <iframe ref={iframeRef} title="Live Preview" className='flex-1 w-full bg-white' sandbox='allow-scripts allow-same-origin allow-forms'/>
             </div>
 
             {/* mobile chat preview */}
@@ -149,7 +162,7 @@ const WebsiteEditor = () => {
                         initial={{ y: "100%" }}
                         animate={{ y: 0 }}
                         exit={{ y: "100%" }}
-                        className='fixed inset-0 z-9999 flex flex-col bg-black'
+                        className='fixed inset-0 z-[9999] flex flex-col bg-black'
                     >
                         <Header />
                         <>
@@ -175,7 +188,7 @@ const WebsiteEditor = () => {
                                         onChange={(e) => setPrompt(e.target.value)}
                                         rows={1}
                                         placeholder='Describe changes...'
-                                        className='flex-1 resize-none rounded-2xl px-4 py-3 bg-white/5 border border-white/10 text-outline-none' />
+                                        className='flex-1 resize-none rounded-2xl px-4 py-3 bg-white/5 border border-white/10 outline-none text-white' />
                                     <button disabled={updateLoading} onClick={handleUpdate} className='px-4 py-3 rounded-2xl bg-white text-black'><Send size={18} /></button>
                                 </div>
                             </div>
@@ -190,21 +203,21 @@ const WebsiteEditor = () => {
                         initial={{ x: "100%" }}
                         animate={{ x: 0 }}
                         exit={{ x: "100%" }}
-                        className='fixed inset-y-0 right-0 w-full lg:w-[45%] z-9999 flex flex-col bg-[#1e1e1e]'
+                        className='fixed inset-y-0 right-0 w-full lg:w-[45%] z-[9999] flex flex-col bg-[#1e1e1e]'
                     >
                         <div className='h-12 px-4 flex justify-between items-center border-b border-white/10 bg-[#1e1e1e]'>
                             <span className='text-sm font-medium'>index.html</span>
                             <button onClick={() => setShowCode(false)}><X size={18} /></button>
                         </div>
-                        <Editor theme='vs-dark' value={code} language='html' onChange={(v) => setCode(v)} />
+                        <Editor theme='vs-dark' value={code} language='html' onChange={(v) => setCode(v || "")} />
                     </motion.div>
                 )}
             </AnimatePresence>
 
             <AnimatePresence>
                 {showFullPreview && (
-                    <motion.div className='fixed inset-0 bg-black z-9999'>
-                        <iframe className='w-full h-full bg-white' srcDoc={code} sandbox='allow-scripts allow-same-origin allow-forms'></iframe>
+                    <motion.div className='fixed inset-0 bg-black z-[9999]'>
+                        <iframe title="Full Preview" className='w-full h-full bg-white' srcDoc={code} sandbox='allow-scripts allow-same-origin allow-forms'></iframe>
                         <button onClick={() => setShowFullPreview(false)} className='absolute top-4 right-4 p-2 bg-black/70 rounded-lg'><X /></button>
                     </motion.div>
                 )}
@@ -215,13 +228,11 @@ const WebsiteEditor = () => {
     function Header() {
         return (
             <div className='h-14 px-4 flex items-center justify-between border-b border-white/10'>
-                <span className='font-semibold truncate'>{website.title}</span>
+                <span className='font-semibold truncate'>{website?.title || "Project Editor"}</span>
                 <button onClick={()=>setShowChat(false)} className='lg:hidden'><X/></button>
             </div>
         )
     }
-
-
 }
 
-export default WebsiteEditor
+export default WebsiteEditor;
