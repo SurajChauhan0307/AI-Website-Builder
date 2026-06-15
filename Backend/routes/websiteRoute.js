@@ -1,15 +1,32 @@
-import express from 'express'
-import { isAuthenticated } from '../middlewares/isAuthenticated.js'
-import { changeWebsite, deployWebsite, generateWebsite, getAllWebsite, getBySlug, getWebsiteById } from '../controllers/websiteController.js'
+import express from "express";
+import { isAuthenticated } from "../middlewares/isAuthenticated.js";
+import {
+  changeWebsite,
+  deployWebsite,
+  generateWebsite,
+  getAllWebsite,
+  getBySlug,
+  getWebsiteById,
+} from "../controllers/websiteController.js";
 
+const router = express.Router();
 
-const router = express.Router()
+// Generate AI website
+router.post("/generate", isAuthenticated, generateWebsite);
 
-router.post('/generate', isAuthenticated, generateWebsite)
-router.post('/update/:id', isAuthenticated, changeWebsite)
-router.get('/getbyid/:id', isAuthenticated, getWebsiteById)
-router.get('/getall', isAuthenticated, getAllWebsite)
-router.get('/deploy/:id', isAuthenticated, deployWebsite)
-router.get('/getbyslug/:slug', isAuthenticated, getBySlug)
+// Update website
+router.post("/update/:id", isAuthenticated, changeWebsite);
 
-export default router
+// Get single website by ID
+router.get("/getbyid/:id", isAuthenticated, getWebsiteById);
+
+// Get all websites
+router.get("/getall", isAuthenticated, getAllWebsite);
+
+// Deploy website
+router.get("/deploy/:id", isAuthenticated, deployWebsite);
+
+// Get website by slug
+router.get("/getbyslug/:slug", isAuthenticated, getBySlug);
+
+export default router;
