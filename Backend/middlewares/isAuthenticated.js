@@ -1,35 +1,51 @@
 import jwt from "jsonwebtoken";
-import { User } from "../models/userModel.js"; // Model import karo
+import { User } from "../models/userModel.js";
 
 export const isAuthenticated = async (req, res, next) => {
   try {
-    const token = req.cookies.token; 
+    // ✅ FIX 1: cookie OR header support
+    const token =
+      req.cookies?.token ||
+      req.headers.authorization?.split(" ")[1];
 
     if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: "Authentication failed: No token found." 
+      return res.status(401).json({
+        success: false,
+        message: "No token found"
       });
     }
 
-    const decoded = jwt.verify(token, process.env.SECRET_KEY);
-    
-    // 🚨 CRITICAL FIX: decoded._id se database mein User ko dhoondo 
-    // aur pura object req.user mein store karo
-    const user = await User.findById(decoded._id);
-    
-    if (!user) {
-        return res.status(401).json({ success: false, message: "User not found." });
+    // ✅ FIX 2: verify token safely
+    let decoded;
+    try {
+      decoded = jwt.verify(token, process.env.SECRET_KEY);
+    } catch (err) {
+      return res.status(401).json({
+        success: false,
+        message: "Invalid or expired token"
+      });
     }
 
-    req.user = user; // 👈 Ab controller ko pura user object milega (credits, plan, name)
-    
+    // ✅ FIX 3: user fetch
+    const user = await User.findById(decoded._id).select("-password");
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        message: "User not found"
+      });
+    }
+
+    // ✅ attach full user
+    req.user = user;
+
     next();
   } catch (error) {
-    console.error("🔒 Auth Middleware Error:", error.message);
-    return res.status(401).json({ 
-      success: false, 
-      message: "Authentication failed: Invalid or expired token." 
+    console.error("Auth Middleware Error:", error.message);
+
+    return res.status(500).json({
+      success: false,
+      message: "Authentication middleware crash"
     });
   }
 };
