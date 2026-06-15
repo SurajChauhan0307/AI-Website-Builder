@@ -68,8 +68,12 @@ const Pricing = () => {
     }
 
     try {
-      // FIXED AMOUNT LOGIC
-      const amount = Number(plan.price.replace("₹", ""));
+      // ✅ FIX 1: safe amount logic (avoid NaN issues)
+      const amount = Number(plan.price.replace(/[₹,]/g, ""));
+
+      if (!API_BASE_URL) {
+        throw new Error("VITE_API_BASE_URL missing");
+      }
 
       // CREATE ORDER
       const result = await axios.post(
@@ -84,12 +88,19 @@ const Pricing = () => {
 
       const order = result.data;
 
+      // ✅ FIX 2: Razorpay safety check
+      if (!window.Razorpay) {
+        throw new Error("Razorpay script not loaded");
+      }
+
       const options = {
         key: RAZORPAY_KEY,
         amount: order.amount,
         currency: "INR",
         name: "Promptic AI",
         description: `${plan.name} - ${plan.credits} Credits`,
+
+        // ⚠️ FIX 3: Razorpay expects "order_id"
         order_id: order.id,
 
         handler: async function (response) {
@@ -146,6 +157,7 @@ const Pricing = () => {
       </motion.div>
 
       <div className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
+
         {plans.map((p) => (
           <div
             key={p.id}
@@ -187,6 +199,7 @@ const Pricing = () => {
             </motion.div>
           </div>
         ))}
+
       </div>
     </div>
   );

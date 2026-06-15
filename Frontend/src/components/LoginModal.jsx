@@ -16,11 +16,12 @@ const LoginModal = ({ open, onClose }) => {
 
       console.log("Firebase User:", result.user)
 
-      // ✅ SAFE ENV CHECK (IMPORTANT FIX)
+      // ✅ ONLY FIX ADDED (safe env check)
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
       if (!API_BASE_URL) {
-        throw new Error("VITE_API_BASE_URL is not defined in Vercel env")
+        console.error("VITE_API_BASE_URL missing in Vercel env")
+        return
       }
 
       const { data } = await axios.post(
@@ -38,13 +39,14 @@ const LoginModal = ({ open, onClose }) => {
       dispatch(setUserData(data))
 
     } catch (error) {
-      console.log("Google Auth Error:", error.message || error)
+      console.log("Google Auth Error:", error)
     }
   }
 
   return (
     <div>
       {open && (
+
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -52,6 +54,7 @@ const LoginModal = ({ open, onClose }) => {
           onClick={onClose}
           className='fixed inset-0 flex z-[100] items-center justify-center bg-black/80 backdrop-blur-xl px-4'
         >
+
           <motion.div
             initial={{ scale: 0.88, opacity: 0, y: 60 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -126,8 +129,8 @@ const LoginModal = ({ open, onClose }) => {
                   By Continuing you agree to our{" "}
                   <span className='underline cursor-pointer hover:text-zinc-300'>
                     Terms of Service
-                  </span>{" "}
-                  and{" "}
+                  </span>
+                  {" "}and{" "}
                   <span className='underline cursor-pointer hover:text-zinc-300'>
                     Privacy Policy
                   </span>
@@ -136,8 +139,11 @@ const LoginModal = ({ open, onClose }) => {
               </div>
 
             </div>
+
           </motion.div>
+
         </motion.div>
+
       )}
     </div>
   )
