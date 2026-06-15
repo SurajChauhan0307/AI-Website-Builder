@@ -17,14 +17,17 @@ const Navbar = () => {
 
   const logoutHandler = async () => {
     try {
+      // ✅ FIXED: Using VITE_API_BASE_URL with a hardcoded production fallback string to prevent "undefined" URL bugs
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-website-builder-d0n1.onrender.com';
+
       await axios.get(
-        `${import.meta.env.VITE_SERVER_URL}/api/auth/logout`,
+        `${API_BASE_URL}/api/auth/logout`,
         { withCredentials: true }
       )
       dispatch(setUserData(null))
       setOpenProfile(false)
     } catch (error) {
-      console.log(error)
+      console.log("Logout error:", error)
     }
   }
 
@@ -71,12 +74,9 @@ const Navbar = () => {
                 className="hidden md:flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm cursor-pointer"
               >
                 <Coins size={14} className="text-yellow-400" />
-
-                {/* ✅ CHANGED */}
                 <span className="text-white font-semibold">
                   {userData.credits}
                 </span>
-
                 <span className="text-zinc-300">Credits</span>
                 <span className="text-indigo-400">+</span>
               </motion.div>
@@ -96,6 +96,7 @@ const Navbar = () => {
                       "https://ui-avatars.com/api/?name=User"
                     }
                     className="w-9 h-9 rounded-full border border-white/20"
+                    alt="avatar"
                   />
                 </motion.button>
 
@@ -115,7 +116,6 @@ const Navbar = () => {
                         </p>
                       </div>
 
-                      {/* ✅ CHANGED */}
                       <button
                         onClick={() => {
                           navigate("/dashboard")
