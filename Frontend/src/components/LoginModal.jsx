@@ -16,7 +16,6 @@ const LoginModal = ({ open, onClose }) => {
 
       console.log("Firebase User:", result.user)
 
-      // ✅ ONLY FIX ADDED (safe env check)
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
       if (!API_BASE_URL) {
@@ -29,14 +28,27 @@ const LoginModal = ({ open, onClose }) => {
         {
           name: result.user.displayName,
           email: result.user.email,
-          avatar: result.user.photoURL
+          avatar: result.user.photoURL,
+          uid: result.user.uid
         },
         {
           withCredentials: true
         }
       )
 
-      dispatch(setUserData(data))
+      console.log("Backend Response:", data)
+
+      // ✅ SAFE USER EXTRACTION
+      const backendUser = data.user || data
+
+      // ✅ FIXED REDUX DISPATCH
+      dispatch(setUserData({
+        name: backendUser.name || result.user.displayName,
+        email: backendUser.email || result.user.email,
+        avatar: backendUser.avatar || result.user.photoURL,
+        uid: backendUser.uid || result.user.uid,
+        credits: backendUser.credits ?? 0
+      }))
 
     } catch (error) {
       console.log("Google Auth Error:", error)
@@ -46,7 +58,6 @@ const LoginModal = ({ open, onClose }) => {
   return (
     <div>
       {open && (
-
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
@@ -54,7 +65,6 @@ const LoginModal = ({ open, onClose }) => {
           onClick={onClose}
           className='fixed inset-0 flex z-[100] items-center justify-center bg-black/80 backdrop-blur-xl px-4'
         >
-
           <motion.div
             initial={{ scale: 0.88, opacity: 0, y: 60 }}
             animate={{ scale: 1, opacity: 1, y: 0 }}
@@ -63,14 +73,13 @@ const LoginModal = ({ open, onClose }) => {
             onClick={(e) => e.stopPropagation()}
             className='relative w-full max-w-md p-px rounded-3xl bg-gradient-to-br from-purple-500/40 via-blue-500/30 to-transparent'
           >
-
             <div className='relative rounded-3xl bg-[#0b0b0b] border border-white/10 overflow-hidden'>
 
-              {/* Glow Background */}
+              {/* Glow */}
               <motion.div className='absolute -top-32 -left-32 w-80 h-80 bg-purple-500/30 blur-[140px]' />
               <motion.div className='absolute -bottom-32 -right-32 w-80 h-80 bg-blue-500/30 blur-[140px]' />
 
-              {/* Close Button */}
+              {/* Close */}
               <button
                 onClick={onClose}
                 className='absolute top-5 right-5 z-20 text-zinc-400 hover:text-white transition text-lg'
@@ -104,9 +113,9 @@ const LoginModal = ({ open, onClose }) => {
                   onClick={handleGoogleAuth}
                   whileHover={{ scale: 1.04 }}
                   whileTap={{ scale: 0.96 }}
-                  className='group relative w-full h-14 rounded-xl bg-white text-black font-semibold shadow-xl overflow-hidden'
+                  className='w-full h-14 rounded-xl bg-white text-black font-semibold shadow-xl'
                 >
-                  <div className='relative flex items-center justify-center gap-3'>
+                  <div className='flex items-center justify-center gap-3'>
                     <img
                       className='h-5 w-5'
                       src="https://upload.wikimedia.org/wikipedia/commons/c/c1/Google_%22G%22_logo.svg"
@@ -119,31 +128,21 @@ const LoginModal = ({ open, onClose }) => {
                 {/* Divider */}
                 <div className='flex items-center gap-4 my-10'>
                   <div className='h-px flex-1 bg-white/10' />
-                  <span className='text-xs tracking-tight text-zinc-500'>
+                  <span className='text-xs text-zinc-500'>
                     Secure Login
                   </span>
                   <div className='h-px flex-1 bg-white/10' />
                 </div>
 
-                <p className='text-xs text-zinc-500 leading-relaxed'>
-                  By Continuing you agree to our{" "}
-                  <span className='underline cursor-pointer hover:text-zinc-300'>
-                    Terms of Service
-                  </span>
-                  {" "}and{" "}
-                  <span className='underline cursor-pointer hover:text-zinc-300'>
-                    Privacy Policy
-                  </span>
+                <p className='text-xs text-zinc-500'>
+                  By continuing you agree to Terms of Service and Privacy Policy
                 </p>
 
               </div>
 
             </div>
-
           </motion.div>
-
         </motion.div>
-
       )}
     </div>
   )

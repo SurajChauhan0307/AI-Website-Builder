@@ -10,7 +10,9 @@ import cors from "cors";
 const app = express();
 const PORT = process.env.PORT || 8000;
 
-// ✅ KEEP THIS FIRST (FIX ONLY ORDER)
+/* ---------------- MIDDLEWARE ORDER FIX ---------------- */
+
+// 1. CORS FIRST (GOOD)
 app.use(
   cors({
     origin: function (origin, callback) {
@@ -38,16 +40,18 @@ app.use(
   })
 );
 
-// middleware same as yours
-app.use(express.json());
+// 2. IMPORTANT FIX (COOKIE PARSER BEFORE ROUTES)
 app.use(cookieParser());
 
-// routes same as yours
+// 3. BODY PARSER (RECOMMENDED ORDER FIX)
+app.use(express.json());
+
+/* ---------------- ROUTES ---------------- */
 app.use("/api/auth", authRoute);
 app.use("/api/website", websiteRoute);
 app.use("/api/payment", paymentRoute);
 
-// DB + server same
+/* ---------------- DB + SERVER ---------------- */
 connectDB()
   .then(() => {
     app.listen(PORT, () => {
