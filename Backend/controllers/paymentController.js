@@ -28,7 +28,7 @@ export const createOrder = async (req, res) => {
 
     await Payment.create({
       userId: req.user._id,
-      planId,
+      planId: planId?.toLowerCase(), // ✅ FIX
       amount,
       credits,
       razorpayOrderId: razorpayOrder.id,
@@ -36,6 +36,7 @@ export const createOrder = async (req, res) => {
     });
 
     return res.json(razorpayOrder);
+
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -43,8 +44,11 @@ export const createOrder = async (req, res) => {
 
 export const verifyPayment = async (req, res) => {
   try {
-    const { razorpay_order_id, razorpay_payment_id, razorpay_signature } =
-      req.body;
+    const {
+      razorpay_order_id,
+      razorpay_payment_id,
+      razorpay_signature,
+    } = req.body;
 
     if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
       return res.status(400).json({ message: "Missing payment data" });
@@ -77,17 +81,13 @@ export const verifyPayment = async (req, res) => {
     payment.razorpayPaymentId = razorpay_payment_id;
     await payment.save();
 
-    if (!payment.userId) {
-      return res.status(500).json({
-        message: "User ID missing in payment record",
-      });
-    }
+    const plan = payment.planId?.toLowerCase(); // ✅ FIX
 
     const updateUser = await User.findByIdAndUpdate(
       payment.userId,
       {
         $inc: { credits: payment.credits },
-        plan: payment.planId,
+        plan: plan, // ✅ SAFE ENUM VALUE
       },
       { new: true }
     );
@@ -97,6 +97,7 @@ export const verifyPayment = async (req, res) => {
       message: "Payment Verified and Credit added",
       user: updateUser,
     });
+
   } catch (error) {
     console.error("❌ Error in verifyPayment:", error);
     return res.status(500).json({
