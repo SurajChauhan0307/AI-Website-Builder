@@ -14,18 +14,33 @@ const PORT = process.env.PORT || 8000;
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ FIXED CORS CONFIG
+// ✅ DYNAMIC CORS CONFIGURATION FOR PRODUCTION PREVIEW BRANCHES
 app.use(
   cors({
-    origin: [
-      "http://localhost:5173",
-      "http://localhost:3000",
+    origin: function (origin, callback) {
+      // Allow requests with no origin (like Postman, mobile apps, or server-to-server calls)
+      if (!origin) return callback(null, true);
 
-      // ✅ VERCEL DOMAINS (IMPORTANT)
-      "https://ai-website-builder-nine-weld.vercel.app",
-      "https://ai-website-builder-lfrm5gfkj-surajc8705-3703s-projects.vercel.app"
-    ],
-    credentials: true,
+      // Define static allowed origins
+      const allowedOrigins = [
+        "http://localhost:5173",
+        "http://localhost:3000",
+        "https://ai-website-builder-nine-weld.vercel.app" // Main production domain
+      ];
+
+      // Dynamically match any Vercel deployment/preview branch related to your project
+      const isVercelPreview = origin.endsWith(".vercel.app") && origin.includes("ai-website-builder");
+
+      if (allowedOrigins.includes(origin) || isVercelPreview) {
+        callback(null, true);
+      } else {
+        console.warn(`🛑 Blocked by CORS policy: Origin ${origin} is unauthorized.`);
+        callback(new Error("Not allowed by CORS"));
+      }
+    },
+    credentials: true, // ⚠️ CRUCIAL: Allows cross-domain cookies to be shared between Vercel and Render
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
   })
 );
 
