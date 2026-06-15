@@ -12,7 +12,10 @@ function Dashboard() {
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState(null);
 
+  // Change 1
   const { userData } = useSelector((state) => state.user);
+  const token = localStorage.getItem("token");
+  console.log("Stored Token:", token);
 
   // ✅ Production safe fallback string url alignment to stop any undefined router paths
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-website-builder-d0n1.onrender.com';
@@ -22,9 +25,15 @@ function Dashboard() {
     try {
       if (!API_BASE_URL) throw new Error("API_BASE_URL endpoint context missing");
 
+      // Change 2
       const result = await axios.get(
         `${API_BASE_URL}/api/website/deploy/${id}`,
-        { withCredentials: true }
+        {
+          withCredentials: true,
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
       );
 
       window.open(result.data.url, "_blank");
@@ -48,9 +57,15 @@ function Dashboard() {
         setLoading(true);
         setError(""); 
 
+        // Change 3
         const result = await axios.get(
           `${API_BASE_URL}/api/website/getall`,
-          { withCredentials: true }
+          {
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${token}`,
+            },
+          }
         );
 
         setWebsites(result.data || []);

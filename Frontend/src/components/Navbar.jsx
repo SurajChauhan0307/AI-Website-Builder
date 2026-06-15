@@ -17,19 +17,32 @@ const Navbar = () => {
 
   const logoutHandler = async () => {
     try {
-      // ✅ FIXED: Using VITE_API_BASE_URL with a hardcoded production fallback string to prevent "undefined" URL bugs
-      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-website-builder-d0n1.onrender.com';
+      const API_BASE_URL =
+        import.meta.env.VITE_API_BASE_URL ||
+        "https://ai-website-builder-d0n1.onrender.com";
 
       await axios.get(
         `${API_BASE_URL}/api/auth/logout`,
-        { withCredentials: true }
-      )
-      dispatch(setUserData(null))
-      setOpenProfile(false)
+        {
+          withCredentials: true,
+        }
+      );
+
+      // Remove token from localStorage
+      localStorage.removeItem("token");
+
+      // Clear Redux user data
+      dispatch(setUserData(null));
+
+      // Close profile dropdown
+      setOpenProfile(false);
+
+      // Redirect to home page
+      navigate("/");
     } catch (error) {
-      console.log("Logout error:", error)
+      console.log("Logout error:", error);
     }
-  }
+  };
 
   return (
     <>
@@ -150,7 +163,10 @@ const Navbar = () => {
 
       {/* LOGIN MODAL */}
       {openLogin && (
-        <LoginModal open={openLogin} onClose={() => setOpenLogin(false)} />
+        <LoginModal
+          open={openLogin}
+          onClose={() => setOpenLogin(false)}
+        />
       )}
     </>
   )

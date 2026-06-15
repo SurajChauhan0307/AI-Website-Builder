@@ -16,7 +16,6 @@ const LoginModal = ({ open, onClose }) => {
 
       console.log("Firebase User:", result.user)
 
-      // ✅ ONLY FIX ADDED (safe env check)
       const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
 
       if (!API_BASE_URL) {
@@ -24,7 +23,7 @@ const LoginModal = ({ open, onClose }) => {
         return
       }
 
-      const { data } = await axios.post(
+      const response = await axios.post(
         `${API_BASE_URL}/api/auth/google`,
         {
           name: result.user.displayName,
@@ -36,11 +35,29 @@ const LoginModal = ({ open, onClose }) => {
         }
       )
 
-      // ✅ FIX ADDED (correct backend response mapping)
+      const data = response.data
+
+      console.log("Backend Response:", data)
+
+      // Save JWT token if backend sends it
+      if (data.token) {
+        localStorage.setItem("token", data.token)
+        console.log("Token saved successfully")
+      } else {
+        console.warn("No token received from backend")
+      }
+
+      // Save user in Redux
       dispatch(setUserData(data.user || data))
 
+      // Close modal
+      onClose()
+
     } catch (error) {
-      console.log("Google Auth Error:", error)
+      console.error(
+        "Google Auth Error:",
+        error.response?.data || error.message
+      )
     }
   }
 
@@ -67,11 +84,9 @@ const LoginModal = ({ open, onClose }) => {
 
             <div className='relative rounded-3xl bg-[#0b0b0b] border border-white/10 overflow-hidden'>
 
-              {/* Glow Background */}
               <motion.div className='absolute -top-32 -left-32 w-80 h-80 bg-purple-500/30 blur-[140px]' />
               <motion.div className='absolute -bottom-32 -right-32 w-80 h-80 bg-blue-500/30 blur-[140px]' />
 
-              {/* Close Button */}
               <button
                 onClick={onClose}
                 className='absolute top-5 right-5 z-20 text-zinc-400 hover:text-white transition text-lg'
@@ -79,7 +94,6 @@ const LoginModal = ({ open, onClose }) => {
                 X
               </button>
 
-              {/* Content */}
               <div className='relative px-8 pt-14 pb-10 text-center'>
 
                 <div className='inline-flex items-center gap-2 px-4 py-2 mb-8 border border-white/10 rounded-full bg-white/5 backdrop-blur'>
@@ -100,7 +114,6 @@ const LoginModal = ({ open, onClose }) => {
                   Sign in to continue building stunning AI websites
                 </p>
 
-                {/* Google Button */}
                 <motion.button
                   onClick={handleGoogleAuth}
                   whileHover={{ scale: 1.04 }}
@@ -117,7 +130,6 @@ const LoginModal = ({ open, onClose }) => {
                   </div>
                 </motion.button>
 
-                {/* Divider */}
                 <div className='flex items-center gap-4 my-10'>
                   <div className='h-px flex-1 bg-white/10' />
                   <span className='text-xs tracking-tight text-zinc-500'>

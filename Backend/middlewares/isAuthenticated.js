@@ -3,12 +3,19 @@ import { User } from "../models/userModel.js";
 
 export const isAuthenticated = async (req, res, next) => {
   try {
-    // 1. Extract token from cookie OR Authorization header
-    // Added a trim() to handle potential spacing issues in headers
+
+    console.log("========== AUTH DEBUG ==========");
+    console.log("COOKIE TOKEN:", req.cookies?.token);
+    console.log("AUTH HEADER:", req.headers.authorization);
+    console.log("================================");
+
     const authHeader = req.headers.authorization;
+
     const token =
-      req.cookies?.token || 
-      (authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader);
+      req.cookies?.token ||
+      (authHeader?.startsWith("Bearer ")
+        ? authHeader.split(" ")[1]
+        : authHeader);
 
     if (!token) {
       return res.status(401).json({
@@ -17,7 +24,6 @@ export const isAuthenticated = async (req, res, next) => {
       });
     }
 
-    // 2. Verify token
     let decoded;
     try {
       decoded = jwt.verify(token, process.env.SECRET_KEY);
@@ -28,8 +34,7 @@ export const isAuthenticated = async (req, res, next) => {
       });
     }
 
-    // 3. Find user
-    const user = await User.findById(decoded._id).select("-password"); // Optimization: exclude password
+    const user = await User.findById(decoded._id).select("-password");
 
     if (!user) {
       return res.status(401).json({
@@ -38,7 +43,6 @@ export const isAuthenticated = async (req, res, next) => {
       });
     }
 
-    // 4. Attach user data
     req.user = {
       _id: user._id,
       name: user.name,
@@ -50,6 +54,7 @@ export const isAuthenticated = async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Auth Middleware Error:", error.message);
+
     return res.status(500).json({
       success: false,
       message: "Authentication middleware internal error",
