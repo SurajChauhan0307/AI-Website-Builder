@@ -1,6 +1,7 @@
 import express from 'express';
 import { googleAuth, logoutUser } from '../controllers/authController.js';
-import { isAuthenticated } from '../middlewares/authMiddleware.js'; 
+// ✅ Correct import for your specific file name
+import { isAuthenticated } from '../middlewares/isAuthenticated.js'; 
 
 const router = express.Router();
 
