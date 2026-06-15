@@ -1,30 +1,14 @@
-import jwt from "jsonwebtoken";
+import express from "express";
+import { isAuthenticated } from "../middlewares/isAuthenticated.js";
+import { createOrder, verifyPayment } from "../controllers/paymentController.js";
 
-export const isAuthenticated = async (req, res, next) => {
-  try {
-    // 1. Grab the token from cookies
-    const token = req.cookies.token; 
+const router = express.Router();
 
-    // 2. If no token, return a clean 401 Unauthorized (Don't let it crash!)
-    if (!token) {
-      return res.status(401).json({ 
-        success: false, 
-        message: "Authentication failed: No token found. Please log in again." 
-      });
-    }
+// 💳 Route 1: Create payment order (Triggers when user clicks a pricing tier button)
+router.post("/order", isAuthenticated, createOrder);
 
-    // 3. Verify the token
-    const decoded = jwt.verify(token, process.env.JWT_SECRET);
-    
-    // 4. Attach the decoded user payload to the request object
-    req.user = decoded; 
-    
-    next();
-  } catch (error) {
-    console.error("🔒 Auth Middleware Error:", error.message);
-    return res.status(401).json({ 
-      success: false, 
-      message: "Authentication failed: Invalid or expired token." 
-    });
-  }
-};
+// 🔍 Route 2: Verify signature (Triggers automatically after Razorpay checkout payment success)
+router.post("/verify", isAuthenticated, verifyPayment);
+
+// ⚠️ FIXED: Crucial default export so 'import paymentRoute from ...' works flawlessly in index.js
+export default router;
