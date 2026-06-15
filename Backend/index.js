@@ -1,64 +1,41 @@
-import jwt from "jsonwebtoken";
-import { User } from "../models/userModel.js";
+import "dotenv/config";
+import express from "express";
+import connectDB from "./Database/db.js";
+import authRoute from "./routes/authRoute.js";
+import websiteRoute from "./routes/websiteRoute.js";
+import paymentRoute from "./routes/paymentRoute.js";
+import cookieParser from "cookie-parser";
+import cors from "cors";
 
-export const isAuthenticated = async (req, res, next) => {
-  try {
+const app = express();
+const PORT = process.env.PORT || 8000;
 
-    console.log("========== AUTH DEBUG ==========");
-    console.log("COOKIE TOKEN:", req.cookies?.token);
-    console.log("AUTH HEADER:", req.headers.authorization);
-    console.log("================================");
+app.use(
+  cors({
+    origin: [
+      "http://localhost:5173",
+      "http://localhost:3000",
+      "https://ai-website-builder-nine-weld.vercel.app"
+    ],
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: ["Content-Type", "Authorization"]
+  })
+);
 
-    const authHeader = req.headers.authorization;
+app.use(cookieParser());
+app.use(express.json());
 
-    const token =
-      req.cookies?.token ||
-      (authHeader?.startsWith("Bearer ")
-        ? authHeader.split(" ")[1]
-        : authHeader);
+app.use("/api/auth", authRoute);
+app.use("/api/website", websiteRoute);
+app.use("/api/payment", paymentRoute);
 
-    if (!token) {
-      return res.status(401).json({
-        success: false,
-        message: "No token found",
-      });
-    }
-
-    let decoded;
-
-    try {
-      decoded = jwt.verify(token, process.env.SECRET_KEY);
-    } catch (err) {
-      return res.status(401).json({
-        success: false,
-        message: "Invalid or expired token",
-      });
-    }
-
-    const user = await User.findById(decoded._id).select("-password");
-
-    if (!user) {
-      return res.status(401).json({
-        success: false,
-        message: "User not found",
-      });
-    }
-
-    req.user = {
-      _id: user._id,
-      name: user.name,
-      email: user.email,
-      credits: user.credits,
-      plan: user.plan,
-    };
-
-    next();
-  } catch (error) {
-    console.error("Auth Middleware Error:", error.message);
-
-    return res.status(500).json({
-      success: false,
-      message: "Authentication middleware internal error",
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`Server is running on port: ${PORT}`);
     });
-  }
-};
+  })
+  .catch((err) => {
+    console.error("Database connection failed ❌", err);
+  });
