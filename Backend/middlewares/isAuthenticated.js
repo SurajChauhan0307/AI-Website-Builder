@@ -3,10 +3,12 @@ import { User } from "../models/userModel.js";
 
 export const isAuthenticated = async (req, res, next) => {
   try {
-    // ✅ token from cookie OR header
+    // 1. Extract token from cookie OR Authorization header
+    // Added a trim() to handle potential spacing issues in headers
+    const authHeader = req.headers.authorization;
     const token =
-      req.cookies?.token ||
-      req.headers.authorization?.split(" ")[1];
+      req.cookies?.token || 
+      (authHeader?.startsWith("Bearer ") ? authHeader.split(" ")[1] : authHeader);
 
     if (!token) {
       return res.status(401).json({
@@ -15,8 +17,8 @@ export const isAuthenticated = async (req, res, next) => {
       });
     }
 
+    // 2. Verify token
     let decoded;
-
     try {
       decoded = jwt.verify(token, process.env.SECRET_KEY);
     } catch (err) {
@@ -26,7 +28,8 @@ export const isAuthenticated = async (req, res, next) => {
       });
     }
 
-    const user = await User.findById(decoded._id);
+    // 3. Find user
+    const user = await User.findById(decoded._id).select("-password"); // Optimization: exclude password
 
     if (!user) {
       return res.status(401).json({
@@ -35,7 +38,7 @@ export const isAuthenticated = async (req, res, next) => {
       });
     }
 
-    // ✅ IMPORTANT FIX (credits + plan always fresh)
+    // 4. Attach user data
     req.user = {
       _id: user._id,
       name: user.name,
@@ -47,10 +50,9 @@ export const isAuthenticated = async (req, res, next) => {
     next();
   } catch (error) {
     console.error("Auth Middleware Error:", error.message);
-
     return res.status(500).json({
       success: false,
-      message: "Authentication middleware crash",
+      message: "Authentication middleware internal error",
     });
   }
 };

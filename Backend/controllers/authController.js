@@ -19,14 +19,11 @@ export const googleAuth = async (req, res) => {
         name,
         email,
         avatar,
-        // optional safety (forces correct enum)
         plan: "free",
         credits: 100,
       });
 
-      console.log(
-        `🎯 Naya email successfully database mein register ho gaya: ${email}`
-      );
+      console.log(`🎯 Naya email successfully database mein register ho gaya: ${email}`);
     }
 
     const token = jwt.sign(
@@ -46,6 +43,7 @@ export const googleAuth = async (req, res) => {
       success: true,
       message: "Authentication successful",
       user,
+      token, // ✅ ADDED: Send token to frontend so it can be saved in localStorage
     });
 
   } catch (error) {
@@ -57,7 +55,7 @@ export const googleAuth = async (req, res) => {
   }
 };
 
-export const logoutUser = async (_, res) => {
+export const logoutUser = async (req, res) => {
   try {
     res.clearCookie("token", {
       httpOnly: true,

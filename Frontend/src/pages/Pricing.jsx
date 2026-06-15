@@ -13,11 +13,7 @@ const plans = [
     price: "₹0",
     credits: 100,
     description: "Perfect to explore Promptic ai",
-    features: [
-      "AI website generation",
-      "Responsive html outputs",
-      "Basic animations",
-    ],
+    features: ["AI website generation", "Responsive html outputs", "Basic animations"],
     popular: false,
     button: "Get Started",
   },
@@ -27,12 +23,7 @@ const plans = [
     price: "₹499",
     credits: 500,
     description: "For serious creators and freelancers",
-    features: [
-      "Everything in Free",
-      "Faster Generations",
-      "Edit and regenerate",
-      "Download Source code",
-    ],
+    features: ["Everything in Free", "Faster Generations", "Edit and regenerate", "Download Source code"],
     popular: true,
     button: "Upgrade to Pro",
   },
@@ -42,12 +33,7 @@ const plans = [
     price: "₹1499",
     credits: 1000,
     description: "For teams and power users",
-    features: [
-      "Unlimited Iterations",
-      "Highest Priority",
-      "Team Collaboration",
-      "Dedicated Support",
-    ],
+    features: ["Unlimited Iterations", "Highest Priority", "Team Collaboration", "Dedicated Support"],
     popular: false,
     button: "Contact Sales",
   },
@@ -68,30 +54,24 @@ const Pricing = () => {
     }
 
     try {
-      // ✅ FIX 1: safe amount logic (avoid NaN issues)
       const amount = Number(plan.price.replace(/[₹,]/g, ""));
+      const token = localStorage.getItem("token"); // Retrieve token for fallback
 
-      if (!API_BASE_URL) {
-        throw new Error("VITE_API_BASE_URL missing");
-      }
+      if (!API_BASE_URL) throw new Error("VITE_API_BASE_URL missing");
 
       // CREATE ORDER
       const result = await axios.post(
         `${API_BASE_URL}/api/payment/order`,
+        { planId: plan.id, amount, credits: plan.credits },
         {
-          planId: plan.id,
-          amount,
-          credits: plan.credits,
-        },
-        { withCredentials: true }
+          withCredentials: true,
+          headers: { Authorization: token ? `Bearer ${token}` : undefined }
+        }
       );
 
       const order = result.data;
 
-      // ✅ FIX 2: Razorpay safety check
-      if (!window.Razorpay) {
-        throw new Error("Razorpay script not loaded");
-      }
+      if (!window.Razorpay) throw new Error("Razorpay script not loaded");
 
       const options = {
         key: RAZORPAY_KEY,
@@ -99,8 +79,6 @@ const Pricing = () => {
         currency: "INR",
         name: "Promptic AI",
         description: `${plan.name} - ${plan.credits} Credits`,
-
-        // ⚠️ FIX 3: Razorpay expects "order_id"
         order_id: order.id,
 
         handler: async function (response) {
@@ -108,7 +86,10 @@ const Pricing = () => {
             const verify = await axios.post(
               `${API_BASE_URL}/api/payment/verify`,
               response,
-              { withCredentials: true }
+              {
+                withCredentials: true,
+                headers: { Authorization: token ? `Bearer ${token}` : undefined }
+              }
             );
 
             if (verify.data.success) {
@@ -119,10 +100,7 @@ const Pricing = () => {
             console.log("Verification error:", err);
           }
         },
-
-        theme: {
-          color: "#19173d",
-        },
+        theme: { color: "#19173d" },
       };
 
       const rzp = new window.Razorpay(options);
@@ -134,7 +112,6 @@ const Pricing = () => {
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050505] text-white px-6 pt-16 pb-24">
-
       <button
         onClick={() => navigate("/")}
         className="relative z-10 mb-8 flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition"
@@ -148,16 +125,11 @@ const Pricing = () => {
         animate={{ opacity: 1, y: 0 }}
         className="relative z-10 max-w-4xl mx-auto text-center mb-14"
       >
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">
-          Simple, transparent pricing
-        </h1>
-        <p className="text-zinc-400 text-lg">
-          Buy credit once. Build anytime.
-        </p>
+        <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h1>
+        <p className="text-zinc-400 text-lg">Buy credit once. Build anytime.</p>
       </motion.div>
 
       <div className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-
         {plans.map((p) => (
           <div
             key={p.id}
@@ -176,20 +148,16 @@ const Pricing = () => {
                   Most Popular
                 </span>
               )}
-
               <h1 className="text-xl font-semibold mb-2">{p.name}</h1>
               <p className="text-zinc-400 text-sm mb-6">{p.description}</p>
-
               <div className="flex items-end gap-1 mb-4">
                 <span className="text-4xl font-bold">{p.price}</span>
                 <span className="text-sm text-zinc-400 mb-1">/one-time</span>
               </div>
-
               <div className="flex items-center gap-2 mb-8">
                 <Coins size={18} className="text-yellow-400" />
                 <span className="font-semibold">{p.credits} Credits</span>
               </div>
-
               <button
                 onClick={() => handlePayment(p)}
                 className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600"
@@ -199,7 +167,6 @@ const Pricing = () => {
             </motion.div>
           </div>
         ))}
-
       </div>
     </div>
   );
