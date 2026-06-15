@@ -25,13 +25,17 @@ const Generate = () => {
     const [error, setError] = useState("")
     const { userData } = useSelector(state => state.user)
 
+    // ✅ FIX 1: Swapped env name to VITE_API_BASE_URL and integrated the production fallback string URL
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-website-builder-d0n1.onrender.com';
+
     const handleGenerateWebsite = async () => {
         try {
             setLoading(true)
             setError("") // Clear errors on fresh submission
 
+            // ✅ FIX 2: Replaced VITE_SERVER_URL with the stable API_BASE_URL variable layout string
             const res = await axios.post(
-                `${import.meta.env.VITE_SERVER_URL}/api/website/generate`,
+                `${API_BASE_URL}/api/website/generate`,
                 { prompt },
                 { withCredentials: true }
             )
@@ -42,7 +46,8 @@ const Generate = () => {
             navigate(`/editor/${res.data.websiteId}`)
 
         } catch (error) {
-            setError(error.response?.data?.message || "Something went wrong")
+            console.error("❌ Website Generation Loop Failed:", error);
+            setError(error.response?.data?.message || "Something went wrong during code structures build loop.")
         } finally {
             setLoading(false)
         }
@@ -87,15 +92,14 @@ const Generate = () => {
         <div className='relative min-h-screen bg-[#050505] text-white overflow-hidden'>
 
             {/* Falling Light Effect */}
-            {/* Note: If w-100 or h-100 renders blank, change to arbitrary values like w-[400px] h-[400px] */}
             <div className='pointer-events-none absolute inset-0'>
                 {/* beam */}
-                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-100 h-100 
-                bg-gradient-to-b from-white/20 via-white/10 to-transparent 
+                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-100 h-100 \
+                bg-gradient-to-b from-white/20 via-white/10 to-transparent \
                 blur-3xl opacity-40'/>
 
                 {/* center glow */}
-                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-100 h-100 
+                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-100 h-100 \
                 bg-white/20 rounded-full blur-[150px]' />
             </div>
 
@@ -110,7 +114,6 @@ const Generate = () => {
                             <ArrowLeft size={16} />
                         </button>
                         
-                        {/* Replaced Dora AI with Promptic AI */}
                         <h1 className="text-lg font-semibold tracking-wide">Promptic AI</h1>
                     </div>
                 </div>
@@ -125,7 +128,6 @@ const Generate = () => {
                 >
                     <h1 className='text-4xl md:text-5xl font-bold mb-5 leading-tight'>
                         Build Website with
-                        {/* Note: If gradient fails to render, switch bg-linear-to-r to bg-gradient-to-r */}
                         <span className='block bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent'>
                             Real AI Power
                         </span>
@@ -163,7 +165,7 @@ const Generate = () => {
                         whileHover={{ scale: prompt.trim() && !loading ? 1.05 : 1 }}
                         whileTap={{ scale: prompt.trim() && !loading ? 0.96 : 1 }}
                         disabled={!prompt.trim() || loading}
-                        className={`px-14 py-4 rounded-2xl font-semibold text-lg transition
+                        className={`px-14 py-4 rounded-2xl font-semibold text-lg transition \
                         ${
                             prompt.trim() && !loading
                                 ? "bg-white text-black cursor-pointer"

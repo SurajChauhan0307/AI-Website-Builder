@@ -14,22 +14,26 @@ const App = () => {
   const { userData } = useSelector(state => state.user)
   const dispatch = useDispatch()
 
+  // ✅ FIX 1: Updated variable to VITE_API_BASE_URL and attached the live Render production backend URL as backup fallback
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-website-builder-d0n1.onrender.com';
+
   useEffect(() => {
     const fetchUser = async () => {
       try {
+        // ✅ FIX 2: Replaced VITE_SERVER_URL string interpolation with stable API_BASE_URL
         const res = await axios.get(
-          `${import.meta.env.VITE_SERVER_URL}/api/auth/me`,
+          `${API_BASE_URL}/api/auth/me`,
           { withCredentials: true }
         )
 
         dispatch(setUserData(res.data.user))
       } catch (err) {
-        console.log("User fetch failed")
+        console.error("❌ User fetch failed on initialization:", err.message)
       }
     }
 
     fetchUser()
-  }, [])
+  }, [API_BASE_URL, dispatch])
 
   return (
     <BrowserRouter>   
@@ -45,4 +49,4 @@ const App = () => {
   )
 }
 
-export default App
+export default App;
