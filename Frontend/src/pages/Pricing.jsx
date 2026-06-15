@@ -1,10 +1,10 @@
-import { ArrowLeft, Coins } from "lucide-react"
-import React, { useState } from "react"
-import { useNavigate } from "react-router-dom"
-import { motion } from "framer-motion"
-import axios from "axios"
-import { useDispatch } from "react-redux"
-import { setUserData } from "../redux/userSlice"
+import { ArrowLeft, Coins } from "lucide-react";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import axios from "axios";
+import { useDispatch } from "react-redux";
+import { setUserData } from "../redux/userSlice";
 
 const plans = [
   {
@@ -51,24 +51,25 @@ const plans = [
     popular: false,
     button: "Contact Sales",
   },
-]
+];
 
 const Pricing = () => {
-  const navigate = useNavigate()
-  const dispatch = useDispatch()
-  const [hovered, setHovered] = useState(null)
+  const navigate = useNavigate();
+  const dispatch = useDispatch();
+  const [hovered, setHovered] = useState(null);
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL
-  const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+  const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID;
 
   const handlePayment = async (plan) => {
     if (plan.id === "free") {
-      navigate("/dashboard")
-      return
+      navigate("/dashboard");
+      return;
     }
 
     try {
-      const amount = plan.id === "enterprise" ? 1499 : 499
+      // FIXED AMOUNT LOGIC
+      const amount = Number(plan.price.replace("₹", ""));
 
       // CREATE ORDER
       const result = await axios.post(
@@ -79,47 +80,46 @@ const Pricing = () => {
           credits: plan.credits,
         },
         { withCredentials: true }
-      )
+      );
 
-      const order = result.data
+      const order = result.data;
 
       const options = {
         key: RAZORPAY_KEY,
         amount: order.amount,
         currency: "INR",
-        name: "Promptic Ai",
+        name: "Promptic AI",
         description: `${plan.name} - ${plan.credits} Credits`,
         order_id: order.id,
 
         handler: async function (response) {
           try {
-            // VERIFY PAYMENT
             const verify = await axios.post(
               `${API_BASE_URL}/api/payment/verify`,
               response,
               { withCredentials: true }
-            )
+            );
 
             if (verify.data.success) {
-              dispatch(setUserData(verify.data.user))
-              navigate("/dashboard")
+              dispatch(setUserData(verify.data.user));
+              navigate("/dashboard");
             }
           } catch (err) {
-            console.log("Verification error:", err)
+            console.log("Verification error:", err);
           }
         },
 
         theme: {
           color: "#19173d",
         },
-      }
+      };
 
-      const rzp = new window.Razorpay(options)
-      rzp.open()
+      const rzp = new window.Razorpay(options);
+      rzp.open();
     } catch (error) {
-      console.log("Payment initialization error:", error)
+      console.log("Payment initialization error:", error);
     }
-  }
+  };
 
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#050505] text-white px-6 pt-16 pb-24">
@@ -189,7 +189,7 @@ const Pricing = () => {
         ))}
       </div>
     </div>
-  )
-}
+  );
+};
 
-export default Pricing
+export default Pricing;
