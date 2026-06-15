@@ -1,6 +1,6 @@
 import { ArrowLeft, Check, Rocket, Share2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion"; // ⚠️ FIXED IMPORT PATH
+import { motion } from "framer-motion"; 
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axios from "axios";
@@ -13,12 +13,14 @@ function Dashboard() {
   const [copiedId, setCopiedId] = useState(null);
 
   const { userData } = useSelector((state) => state.user);
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+
+  // ✅ Production safe fallback string url alignment to stop any undefined router paths
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-website-builder-d0n1.onrender.com';
 
   // ================= DEPLOY =================
   const handleDeploy = async (id) => {
     try {
-      if (!API_BASE_URL) throw new Error("API_BASE_URL missing");
+      if (!API_BASE_URL) throw new Error("API_BASE_URL endpoint context missing");
 
       const result = await axios.get(
         `${API_BASE_URL}/api/website/deploy/${id}`,
@@ -35,7 +37,7 @@ function Dashboard() {
         )
       );
     } catch (error) {
-      console.log("Deploy error:", error);
+      console.error("❌ Dashboard Deploy tracking sequence crashed:", error.response?.data || error.message);
     }
   };
 
@@ -44,7 +46,7 @@ function Dashboard() {
     const handleGetAllWebsite = async () => {
       try {
         setLoading(true);
-        if (!API_BASE_URL) throw new Error("API_BASE_URL missing");
+        setError(""); 
 
         const result = await axios.get(
           `${API_BASE_URL}/api/website/getall`,
@@ -53,14 +55,15 @@ function Dashboard() {
 
         setWebsites(result.data || []);
       } catch (error) {
-        setError(error.response?.data?.message || "Failed to load websites");
+        console.error("❌ Fetching live project directory array failed:", error.response?.data || error.message);
+        setError(error.response?.data?.message || "Failed to load generated profiles from the live server.");
       } finally {
         setLoading(false);
       }
     };
 
     handleGetAllWebsite();
-  }, [API_BASE_URL]);
+  }, []); 
 
   // ================= COPY =================
   const handleCopy = async (site) => {
@@ -109,19 +112,23 @@ function Dashboard() {
         </motion.div>
 
         {loading && (
-          <div className="mt-24 text-center text-zinc-400">Loading...</div>
+          <div className="mt-24 text-center text-zinc-400 animate-pulse">Loading dashboards...</div>
         )}
 
         {error && !loading && (
-          <div className="mt-24 text-center text-red-400">{error}</div>
+          <div className="mt-24 text-center text-red-400 border border-red-500/20 bg-red-500/5 max-w-md mx-auto py-3 rounded-xl">
+            {error}
+          </div>
         )}
 
-        {!loading && websites.length === 0 && (
-          <div className="mt-24 text-center text-zinc-400">No websites yet</div>
+        {!loading && !error && websites.length === 0 && (
+          <div className="mt-24 text-center text-zinc-500 text-sm">
+            No websites generated yet. Click "+ New Website" to launch your template engine.
+          </div>
         )}
 
         {/* GRID */}
-        {websites.length > 0 && (
+        {!loading && !error && websites.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
             {websites.map((w, i) => {
               const copied = copiedId === w._id;
@@ -146,27 +153,27 @@ function Dashboard() {
                   </div>
 
                   <div className="p-5 flex flex-col gap-4 flex-1">
-                    <h3 className="text-base font-semibold">{w.title}</h3>
+                    <h3 className="text-base font-semibold">{w.title || "Untitled AI Project"}</h3>
 
                     <p className="text-xs text-zinc-400">
-                      Last Updated {new Date(w.updatedAt).toLocaleDateString()}
+                      Last Updated {w.updatedAt ? new Date(w.updatedAt).toLocaleDateString() : "Recently"}
                     </p>
 
                     {!w.deployed ? (
                       <button
                         onClick={(e) => {
-                          e.stopPropagation(); // Stops routing to editor page
+                          e.stopPropagation(); 
                           handleDeploy(w._id);
                         }}
-                        className="mt-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-500 hover:scale-105 transition"
+                        className="mt-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-500 hover:bg-indigo-600 transition"
                       >
                         <Rocket size={18} />
-                        Deploy
+                        Deploy Layout
                       </button>
                     ) : (
                       <motion.button
                         onClick={(e) => {
-                          e.stopPropagation(); // ⚠️ FIXED: Added stopPropagation to prevent jumping to editor on copy
+                          e.stopPropagation(); 
                           handleCopy(w);
                         }}
                         whileTap={{ scale: 0.95 }}
@@ -183,7 +190,7 @@ function Dashboard() {
                           </>
                         ) : (
                           <>
-                            <Share2 size={14} /> Share
+                            <Share2 size={14} /> Share Production
                           </>
                         )}
                       </motion.button>
