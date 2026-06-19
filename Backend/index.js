@@ -17,12 +17,12 @@ app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ FIXED CORS CONFIG
+// ✅ FIXED CORS CONFIG: Added your specific Vercel production URL
 app.use(
   cors({
     origin: [
-      "http://localhost:5173",        // local frontend
-      "https://doraai-1.onrender.com" // production frontend
+      "http://localhost:5173", 
+      "https://ai-website-builder-nine-weld.vercel.app" 
     ],
     credentials: true,
   })
