@@ -2,11 +2,9 @@ import { ArrowRight, Sparkles, Zap, LayoutTemplate, Download } from "lucide-reac
 import { motion } from "framer-motion"
 import { useNavigate } from "react-router-dom"
 import Navbar from "../components/Navbar"
-import { useSelector } from "react-redux"
 
 const Home = () => {
   const navigate = useNavigate()
-  const { userData } = useSelector(state => state.user)
 
   return (
     <>
@@ -14,38 +12,15 @@ const Home = () => {
 
       <section className="relative min-h-screen bg-[#050505] text-white overflow-hidden">
 
-        {/* 🌟 Animated Background Blobs */}
-        <motion.div
-          className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[140px]"
-          animate={{
-            x: [0, 50, 0],
-            y: [0, 30, 0],
-            scale: [1, 1.1, 1],
-          }}
-          transition={{
-            duration: 10,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
-
-        <motion.div
-          className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[140px]"
-          animate={{
-            x: [0, -50, 0],
-            y: [0, -30, 0],
-            scale: [1, 1.15, 1],
-          }}
-          transition={{
-            duration: 12,
-            repeat: Infinity,
-            ease: "easeInOut",
-          }}
-        />
+        {/* ✅ FIX: Changed w-125/h-125 to standard Tailwind values (w-[500px]) for accurate glow rendering */}
+        <div className="absolute inset-0 pointer-events-none z-0">
+          <div className="absolute -top-40 -left-40 w-[500px] h-[500px] bg-indigo-600/20 rounded-full blur-[140px]" />
+          <div className="absolute bottom-0 right-0 w-[500px] h-[500px] bg-purple-600/20 rounded-full blur-[140px]" />
+        </div>
 
         {/* Grid background */}
         <div
-          className="absolute inset-0 opacity-10"
+          className="absolute inset-0 opacity-10 z-0"
           style={{
             backgroundImage:
               "linear-gradient(to right, #ffffff15 1px, transparent 1px), linear-gradient(to bottom, #ffffff15 1px, transparent 1px)",
@@ -53,13 +28,13 @@ const Home = () => {
           }}
         />
 
-        {/* Content */}
         <div className="relative z-10 max-w-7xl mx-auto px-6 pt-32 pb-20 text-center">
 
           {/* Badge */}
           <motion.div
             initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, ease: "easeOut" }}
             className="inline-flex items-center gap-2 px-4 py-2 mb-8 border border-white/10 rounded-full bg-white/5 backdrop-blur"
           >
             <Sparkles className="w-4 h-4 text-purple-400" />
@@ -70,9 +45,9 @@ const Home = () => {
 
           {/* Heading */}
           <motion.h1
-            initial={{ opacity: 0, y: -40 }}
+            initial={{ opacity: 0, y: -30 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7 }}
+            transition={{ duration: 0.7, ease: "easeOut" }}
             className="text-5xl md:text-7xl font-bold leading-tight"
           >
             Build Websites with
@@ -86,7 +61,7 @@ const Home = () => {
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.2 }}
+            transition={{ delay: 0.2, duration: 0.6 }}
             className="max-w-2xl mx-auto mt-6 text-lg text-gray-400"
           >
             Generate stunning, responsive websites instantly using AI.
@@ -97,50 +72,85 @@ const Home = () => {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.3 }}
+            transition={{ delay: 0.3, duration: 0.6 }}
             className="flex flex-col sm:flex-row justify-center gap-4 mt-10"
           >
             <button
-              onClick={() => navigate("/generate")}
-              className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-xl font-semibold transition"
+              type="button"
+              onClick={() => navigate('/generate')}
+              className="flex items-center justify-center gap-2 px-6 py-3 bg-indigo-500 hover:bg-indigo-600 rounded-xl font-semibold transition cursor-pointer"
             >
               Start Building
               <ArrowRight size={18} />
             </button>
 
-            <button className="px-6 py-3 border border-white/20 hover:bg-white/10 rounded-xl transition">
+            <button
+              type="button"
+              className="px-6 py-3 border border-white/20 hover:bg-white/10 rounded-xl transition cursor-pointer"
+            >
               Watch Demo
             </button>
           </motion.div>
 
-          {/* Feature Cards */}
+          {/* Feature cards */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-20">
 
-            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur hover:border-indigo-400 transition">
+            {/* Card 1 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.1, duration: 0.5, ease: "easeOut" }}
+              whileHover={{ y: -8, scale: 1.02 }}
+              className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:border-indigo-400 transition-all duration-300 cursor-pointer text-left"
+            >
               <Zap className="text-yellow-400 mb-4" />
-              <h3 className="font-semibold text-lg mb-2">Instant Generation</h3>
+              <h3 className="font-semibold text-lg mb-2">
+                Instant Generation
+              </h3>
               <p className="text-sm text-gray-400">
                 Describe your website and AI generates it instantly.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur hover:border-indigo-400 transition">
+            {/* Card 2 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.2, duration: 0.5, ease: "easeOut" }}
+              whileHover={{ y: -8, scale: 1.02 }}
+              className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:border-indigo-400 transition-all duration-300 cursor-pointer text-left"
+            >
               <LayoutTemplate className="text-indigo-400 mb-4" />
-              <h3 className="font-semibold text-lg mb-2">Responsive Layout</h3>
+              <h3 className="font-semibold text-lg mb-2">
+                Responsive Layout
+              </h3>
               <p className="text-sm text-gray-400">
-                Works perfectly on mobile, tablet and desktop.
+                Websites look perfect on mobile, tablet and desktop.
               </p>
-            </div>
+            </motion.div>
 
-            <div className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur hover:border-indigo-400 transition">
+            {/* Card 3 */}
+            <motion.div 
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: 0.3, duration: 0.5, ease: "easeOut" }}
+              whileHover={{ y: -8, scale: 1.02 }}
+              className="p-6 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-md hover:border-indigo-400 transition-all duration-300 cursor-pointer text-left"
+            >
               <Download className="text-green-400 mb-4" />
-              <h3 className="font-semibold text-lg mb-2">Export Code</h3>
+              <h3 className="font-semibold text-lg mb-2">
+                Export Code
+              </h3>
               <p className="text-sm text-gray-400">
                 Download clean HTML, CSS and JS instantly.
               </p>
-            </div>
+            </motion.div>
 
           </div>
+
         </div>
       </section>
     </>

@@ -1,38 +1,40 @@
 import { ArrowLeft, Check, Rocket, Share2 } from "lucide-react";
 import React, { useEffect, useState } from "react";
-import { motion } from "framer-motion"; 
+import { motion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { useSelector } from "react-redux";
 import axios from "axios";
 
 function Dashboard() {
   const navigate = useNavigate();
+
   const [websites, setWebsites] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [copiedId, setCopiedId] = useState(null);
 
-  // Change 1
-  const { userData } = useSelector((state) => state.user);
-  const token = localStorage.getItem("token");
-  console.log("Stored Token:", token);
+  const { userData } = useSelector(state => state.user);
 
-  // ✅ Production safe fallback string url alignment to stop any undefined router paths
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-website-builder-d0n1.onrender.com';
+  // ✅ Production/Render Backend Base URL
+  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || "https://ai-website-builder-d0n1.onrender.com";
 
-  // ================= DEPLOY =================
+  // 🚀 WEBSITE DEPLOY FUNCTION
   const handleDeploy = async (id) => {
     try {
-      if (!API_BASE_URL) throw new Error("API_BASE_URL endpoint context missing");
+      const localToken = localStorage.getItem('token');
+      
+      if (!localToken) {
+        setError("Session expired. Please log in again.");
+        return;
+      }
 
-      // Change 2
       const result = await axios.get(
         `${API_BASE_URL}/api/website/deploy/${id}`,
-        {
+        { 
           withCredentials: true,
           headers: {
-            Authorization: `Bearer ${token}`,
-          },
+            Authorization: `Bearer ${localToken}`
+          }
         }
       );
 
@@ -46,48 +48,57 @@ function Dashboard() {
         )
       );
     } catch (error) {
-      console.error("❌ Dashboard Deploy tracking sequence crashed:", error.response?.data || error.message);
+      console.log("Deploy failed:", error);
     }
   };
 
-  // ================= FETCH WEBSITES =================
+  // 📥 FETCH ALL WEBSITES WITH SECURITY GUARD
   useEffect(() => {
     const handleGetAllWebsite = async () => {
       try {
-        setLoading(true);
-        setError(""); 
+        const localToken = localStorage.getItem('token');
 
-        // Change 3
+        // Agar token nahi hai, toh invalid API request trigger hi nahi hogi
+        if (!localToken) {
+          setError("Session expired. Please log in again.");
+          return;
+        }
+
+        setLoading(true);
         const result = await axios.get(
           `${API_BASE_URL}/api/website/getall`,
-          {
+          { 
             withCredentials: true,
             headers: {
-              Authorization: `Bearer ${token}`,
-            },
+              Authorization: `Bearer ${localToken}`
+            }
           }
         );
 
         setWebsites(result.data || []);
+        setError(""); // Purane errors clear karne ke liye
       } catch (error) {
-        console.error("❌ Fetching live project directory array failed:", error.response?.data || error.message);
-        setError(error.response?.data?.message || "Failed to load generated profiles from the live server.");
+        setError(error.response?.data?.message || "Something went wrong");
+        console.log("Fetch error:", error);
       } finally {
         setLoading(false);
       }
     };
 
     handleGetAllWebsite();
-  }, []); 
+  }, [API_BASE_URL]);
 
-  // ================= COPY =================
+  // 📋 COPY LINK FUNCTION
   const handleCopy = async (site) => {
-    if (!site?.deployUrl) return;
+    try {
+      if (!site?.deployUrl) return;
 
-    await navigator.clipboard.writeText(site.deployUrl);
-    setCopiedId(site._id);
-
-    setTimeout(() => setCopiedId(null), 2000);
+      await navigator.clipboard.writeText(site.deployUrl);
+      setCopiedId(site._id);
+      setTimeout(() => setCopiedId(null), 2000);
+    } catch (err) {
+      console.log("Copy failed:", err);
+    }
   };
 
   return (
@@ -96,6 +107,7 @@ function Dashboard() {
       {/* HEADER */}
       <div className="sticky top-0 z-40 backdrop-blur-xl bg-black/50 border-b border-white/10">
         <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
+
           <div className="flex items-center gap-4">
             <button
               onClick={() => navigate("/")}
@@ -103,6 +115,7 @@ function Dashboard() {
             >
               <ArrowLeft size={16} />
             </button>
+
             <h1 className="text-lg font-semibold">Dashboard</h1>
           </div>
 
@@ -112,39 +125,47 @@ function Dashboard() {
           >
             + New Website
           </button>
+
         </div>
       </div>
 
-      {/* CONTENT */}
+      {/* BODY */}
       <div className="px-6 py-10 max-w-7xl mx-auto">
+
         <motion.div
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-10"
         >
           <p className="text-sm text-zinc-400 mb-1">Welcome Back</p>
-          <h1 className="text-3xl font-bold">{userData?.name || "User"}</h1>
+          <h1 className="text-3xl font-bold">
+            {userData?.name || "User"}
+          </h1>
         </motion.div>
 
+        {/* STATES */}
         {loading && (
-          <div className="mt-24 text-center text-zinc-400 animate-pulse">Loading dashboards...</div>
+          <div className="mt-24 text-center text-zinc-400">
+            Loading your websites...
+          </div>
         )}
 
         {error && !loading && (
-          <div className="mt-24 text-center text-red-400 border border-red-500/20 bg-red-500/5 max-w-md mx-auto py-3 rounded-xl">
+          <div className="mt-24 text-center text-red-400">
             {error}
           </div>
         )}
 
         {!loading && !error && websites.length === 0 && (
-          <div className="mt-24 text-center text-zinc-500 text-sm">
-            No websites generated yet. Click "+ New Website" to launch your template engine.
+          <div className="mt-24 text-center text-zinc-400">
+            You have no websites.
           </div>
         )}
 
         {/* GRID */}
-        {!loading && !error && websites.length > 0 && (
+        {!loading && websites.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-8">
+
             {websites.map((w, i) => {
               const copied = copiedId === w._id;
 
@@ -156,48 +177,52 @@ function Dashboard() {
                   transition={{ delay: i * 0.05 }}
                   whileHover={{ y: -6 }}
                   onClick={() => navigate(`/editor/${w._id}`)}
-                  className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden hover:bg-white/10 transition flex flex-col cursor-pointer"
+                  className="rounded-2xl bg-white/5 border border-white/10 overflow-hidden hover:bg-white/10 transition flex flex-col"
                 >
-                  <div className="relative h-40 bg-black">
+
+                  <div className="relative h-40 bg-black cursor-pointer">
                     <iframe
                       srcDoc={w.latestCode}
-                      title={w.title}
                       className="absolute inset-0 w-[140%] h-[140%] scale-[0.72] origin-top-left pointer-events-none bg-white"
                     />
                     <div className="absolute inset-0 bg-black/30" />
                   </div>
 
                   <div className="p-5 flex flex-col gap-4 flex-1">
-                    <h3 className="text-base font-semibold">{w.title || "Untitled AI Project"}</h3>
+
+                    <h3 className="text-base font-semibold line-clamp-2">
+                      {w.title}
+                    </h3>
 
                     <p className="text-xs text-zinc-400">
-                      Last Updated {w.updatedAt ? new Date(w.updatedAt).toLocaleDateString() : "Recently"}
+                      Last Updated{" "}
+                      {new Date(w.updatedAt).toLocaleDateString()}
                     </p>
 
                     {!w.deployed ? (
                       <button
                         onClick={(e) => {
-                          e.stopPropagation(); 
+                          e.stopPropagation();
                           handleDeploy(w._id);
                         }}
-                        className="mt-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-indigo-500 hover:bg-indigo-600 transition"
+                        className="mt-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-semibold bg-linear-to-r from-indigo-500 to-purple-500 hover:scale-105 transition"
                       >
                         <Rocket size={18} />
-                        Deploy Layout
+                        Deploy
                       </button>
                     ) : (
                       <motion.button
                         onClick={(e) => {
-                          e.stopPropagation(); 
+                          e.stopPropagation();
                           handleCopy(w);
                         }}
                         whileTap={{ scale: 0.95 }}
                         className={`mt-auto flex items-center justify-center gap-2 px-4 py-2 rounded-xl text-sm font-medium transition-all 
-                          ${
-                            copied
-                              ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
-                              : "bg-white/10 hover:bg-white/20 border border-white/10"
-                          }`}
+                        ${
+                          copied
+                            ? "bg-emerald-500/20 text-emerald-400 border border-emerald-500/30"
+                            : "bg-white/10 hover:bg-white/20 border border-white/10"
+                        }`}
                       >
                         {copied ? (
                           <>
@@ -205,17 +230,20 @@ function Dashboard() {
                           </>
                         ) : (
                           <>
-                            <Share2 size={14} /> Share Production
+                            <Share2 size={14} /> Share Link
                           </>
                         )}
                       </motion.button>
                     )}
+
                   </div>
                 </motion.div>
               );
             })}
+
           </div>
         )}
+
       </div>
     </div>
   );

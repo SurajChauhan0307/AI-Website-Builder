@@ -15,20 +15,48 @@ const messageSchema = new mongoose.Schema({
 const websiteSchema = new mongoose.Schema({
     user: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "User"
+        ref: "User",
+        required: true,
+        index: true
     },
+
     title: {
         type: String,
         default: "Untitled Website"
     },
+
     latestCode: {
         type: String,
-        requried: true
+        required: true,
+        index: true
     },
-    conversation: [messageSchema],
-    deployed: { type: Boolean, default: false },
-    deployUrl: { type: String },
-    slug:{type:String, unique:true, sparse:true}
+
+    conversation: {
+        type: [messageSchema],
+        default: []
+    },
+
+    deployed: {
+        type: Boolean,
+        default: false,
+        index: true
+    },
+
+    deployUrl: {
+        type: String,
+        default: null
+    },
+
+    slug: {
+        type: String,
+        unique: true,
+        sparse: true,
+        index: true
+    }
+
 }, { timestamps: true })
+
+// performance optimization
+websiteSchema.index({ user: 1, createdAt: -1 })
 
 export const Website = mongoose.model("Website", websiteSchema)

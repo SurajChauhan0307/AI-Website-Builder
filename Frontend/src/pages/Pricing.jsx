@@ -1,175 +1,223 @@
-import { ArrowLeft, Coins } from "lucide-react";
-import React, { useState } from "react";
-import { useNavigate } from "react-router-dom";
-import { motion } from "framer-motion";
-import axios from "axios";
-import { useDispatch } from "react-redux";
-import { setUserData } from "../redux/userSlice";
+import { ArrowLeft, Check, Coins } from 'lucide-react'
+import React from 'react'
+import { useNavigate } from 'react-router-dom'
+import { motion } from "framer-motion"
+import axios from 'axios'
+import { useDispatch } from 'react-redux'
+import { setUserData } from '../redux/userSlice'
 
 const plans = [
-  {
-    id: "free",
-    name: "Free",
-    price: "₹0",
-    credits: 100,
-    description: "Perfect to explore Promptic ai",
-    features: ["AI website generation", "Responsive html outputs", "Basic animations"],
-    popular: false,
-    button: "Get Started",
-  },
-  {
-    id: "pro",
-    name: "Pro",
-    price: "₹499",
-    credits: 500,
-    description: "For serious creators and freelancers",
-    features: ["Everything in Free", "Faster Generations", "Edit and regenerate", "Download Source code"],
-    popular: true,
-    button: "Upgrade to Pro",
-  },
-  {
-    id: "enterprise",
-    name: "Enterprise",
-    price: "₹1499",
-    credits: 1000,
-    description: "For teams and power users",
-    features: ["Unlimited Iterations", "Highest Priority", "Team Collaboration", "Dedicated Support"],
-    popular: false,
-    button: "Contact Sales",
-  },
-];
+    {
+        id: "free",
+        name: "Free",
+        price: '₹0',
+        credits: 100,
+        description: "Perfect to explore Promptic ai",
+        features: [
+            "AI website generation",
+            "Responsive html outputs",
+            "Basic animations"
+        ],
+        popular: false,
+        button: "Get Started"
+    },
+    {
+        id: "pro",
+        name: "Pro",
+        price: '₹499',
+        credits: 500,
+        description: "For serious creators and freelancers",
+        features: [
+            "Everything in Free",
+            "Faster Generations",
+            "Edit and regenerate",
+            "Download Source code"
+        ],
+        popular: true,
+        button: "Upgrade to Pro"
+    },
+    {
+        id: "enterprise",
+        name: "Enterprise",
+        price: '₹1499',
+        credits: 1000,
+        description: "For teams and power users",
+        features: [
+            "Unlimited Iterations",
+            "Highest Priority",
+            "Team Collaboration",
+            "Dedicated Support"
+        ],
+        popular: false,
+        button: "Contact Sales"
+    },
+]
 
 const Pricing = () => {
-  const navigate = useNavigate();
-  const dispatch = useDispatch();
-  const [hovered, setHovered] = useState(null);
+    const navigate = useNavigate()
+    const dispatch = useDispatch()
 
-  const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
-  const RAZORPAY_KEY = import.meta.env.VITE_RAZORPAY_KEY_ID;
-
-  const handlePayment = async (plan) => {
-    if (plan.id === "free") {
-      navigate("/dashboard");
-      return;
-    }
-
-    try {
-      const amount = Number(plan.price.replace(/[₹,]/g, ""));
-      const token = localStorage.getItem("token"); // Retrieve token for fallback
-
-      if (!API_BASE_URL) throw new Error("VITE_API_BASE_URL missing");
-
-      // CREATE ORDER
-      const result = await axios.post(
-        `${API_BASE_URL}/api/payment/order`,
-        { planId: plan.id, amount, credits: plan.credits },
-        {
-          withCredentials: true,
-          headers: { Authorization: token ? `Bearer ${token}` : undefined }
+    const handlePayment = async (plan) => {
+        if (plan.id === "free") {
+            navigate("/dashboard")
+            return
         }
-      );
 
-      const order = result.data;
+        try {
+            const localToken = localStorage.getItem('token');
 
-      if (!window.Razorpay) throw new Error("Razorpay script not loaded");
-
-      const options = {
-        key: RAZORPAY_KEY,
-        amount: order.amount,
-        currency: "INR",
-        name: "Promptic AI",
-        description: `${plan.name} - ${plan.credits} Credits`,
-        order_id: order.id,
-
-        handler: async function (response) {
-          try {
-            const verify = await axios.post(
-              `${API_BASE_URL}/api/payment/verify`,
-              response,
-              {
-                withCredentials: true,
-                headers: { Authorization: token ? `Bearer ${token}` : undefined }
-              }
-            );
-
-            if (verify.data.success) {
-              dispatch(setUserData(verify.data.user));
-              navigate("/dashboard");
+            // 🚨 Guard Check: Agar token missing hai toh request roko
+            if (!localToken) {
+                alert("Please log in first to purchase a plan.");
+                return;
             }
-          } catch (err) {
-            console.log("Verification error:", err);
-          }
-        },
-        theme: { color: "#19173d" },
-      };
 
-      const rzp = new window.Razorpay(options);
-      rzp.open();
-    } catch (error) {
-      console.log("Payment initialization error:", error);
+            const amount = plan.id === "enterprise" ? 1499 : 499
+
+            // ✅ Fix: Appended Authorization Bearer header for creating payment order
+            const result = await axios.post(
+                `${import.meta.env.VITE_SERVER_URL}/api/payment/order`,
+                {
+                    planId: plan.id,
+                    amount,
+                    credits: plan.credits
+                },
+                { 
+                    withCredentials: true,
+                    headers: {
+                        Authorization: `Bearer ${localToken}`
+                    }
+                }
+            )
+
+            const options = {
+                key: import.meta.env.VITE_RAZORPAY_KEY_ID,
+                amount: result.data.amount,
+                currency: 'INR',
+                name: "Promptic ai",
+                description: `${plan.name} - ${plan.credits} Credits`,
+                order_id: result.data.id,
+
+                handler: async function (response) {
+                    try {
+                        // ✅ Fix: Appended Authorization Bearer header for order verification
+                        const verify = await axios.post(
+                            `${import.meta.env.VITE_SERVER_URL}/api/payment/verify`,
+                            response,
+                            { 
+                                withCredentials: true, 
+                                headers: {
+                                    Authorization: `Bearer ${localToken}`
+                                }
+                            }
+                        )
+
+                        dispatch(setUserData(verify.data.user))
+                        navigate("/dashboard") // Payment complete hone par safe redirect
+                    } catch (err) {
+                        console.log("Verification error:", err)
+                    }
+                },
+
+                theme: {
+                    color: "#19173d"
+                }
+            }
+
+            const rzp = new window.Razorpay(options)
+            rzp.open()
+
+        } catch (error) {
+            console.log("Payment error:", error)
+        }
     }
-  };
 
-  return (
-    <div className="relative min-h-screen overflow-hidden bg-[#050505] text-white px-6 pt-16 pb-24">
-      <button
-        onClick={() => navigate("/")}
-        className="relative z-10 mb-8 flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition"
-      >
-        <ArrowLeft size={16} />
-        Back
-      </button>
+    return (
+        <div className='relative min-h-screen overflow-hidden bg-[#050505] text-white px-6 pt-16 pb-24'>
+            <div className='absolute inset-0 pointer-events-none'>
+                <div className='absolute -top-40 -left-40 w-125 h-125 bg-indigo-600/20 rounded-full blur-[120px]' />
+                <div className='absolute bottom-0 right-0 w-125 h-125 bg-indigo-600/20 rounded-full blur-[120px]' />
+            </div>
 
-      <motion.div
-        initial={{ opacity: 0, y: 24 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="relative z-10 max-w-4xl mx-auto text-center mb-14"
-      >
-        <h1 className="text-4xl md:text-5xl font-bold mb-4">Simple, transparent pricing</h1>
-        <p className="text-zinc-400 text-lg">Buy credit once. Build anytime.</p>
-      </motion.div>
-
-      <div className="relative z-10 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8">
-        {plans.map((p) => (
-          <div
-            key={p.id}
-            onMouseEnter={() => setHovered(p.id)}
-            onMouseLeave={() => setHovered(null)}
-          >
-            <motion.div
-              animate={{
-                scale: hovered === p.id ? 1.05 : 1,
-                opacity: hovered && hovered !== p.id ? 0.7 : 1,
-              }}
-              className="relative h-full rounded-3xl p-8 border backdrop-blur-xl cursor-pointer"
+            <button
+                onClick={() => navigate("/")}
+                className='relative z-10 mb-8 flex items-center gap-2 text-sm text-zinc-400 hover:text-white transition'
             >
-              {p.popular && (
-                <span className="absolute top-5 right-5 px-3 py-1 text-xs rounded-full bg-indigo-500">
-                  Most Popular
-                </span>
-              )}
-              <h1 className="text-xl font-semibold mb-2">{p.name}</h1>
-              <p className="text-zinc-400 text-sm mb-6">{p.description}</p>
-              <div className="flex items-end gap-1 mb-4">
-                <span className="text-4xl font-bold">{p.price}</span>
-                <span className="text-sm text-zinc-400 mb-1">/one-time</span>
-              </div>
-              <div className="flex items-center gap-2 mb-8">
-                <Coins size={18} className="text-yellow-400" />
-                <span className="font-semibold">{p.credits} Credits</span>
-              </div>
-              <button
-                onClick={() => handlePayment(p)}
-                className="w-full py-3 rounded-xl bg-indigo-500 hover:bg-indigo-600"
-              >
-                {p.button}
-              </button>
-            </motion.div>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-};
+                <ArrowLeft size={16} />
+                Back
+            </button>
 
-export default Pricing;
+            <motion.div
+                initial={{ opacity: 0, y: 24 }}
+                animate={{ opacity: 1, y: 0 }}
+                className='relative z-10 max-w-4xl mx-auto text-center mb-14'
+            >
+                <h1 className='text-4xl md:text-5xl font-bold mb-4'>
+                    Simple, transparent pricing
+                </h1>
+                <p className='text-zinc-400 text-lg'>
+                    Buy credit once. Build anytime.
+                </p>
+            </motion.div>
+
+            <div className='relative z-10 max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-3 gap-8'>
+                {plans.map((p, i) => (
+                    <motion.div
+                        key={i}
+                        initial={{ opacity: 0, y: 40 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        transition={{ delay: i * 0.12 }}
+                        whileHover={{ y: -14, scale: 1.03 }}
+                        className={`relative rounded-3xl p-8 border backdrop-blur-xl transition-all 
+                        ${p.popular
+                                ? "border-indigo-500 bg-gradient-to-b from-indigo-500/20 to-transparent shadow-2xl shadow-indigo-500/30"
+                                : "border-white/10 bg-white/5 hover:border-indigo-400 hover:bg-white/10"
+                            }`}
+                    >
+                        {p.popular && (
+                            <span className='absolute top-5 right-5 px-3 py-1 text-xs rounded-full bg-indigo-500'>
+                                Most Popular
+                            </span>
+                        )}
+
+                        <h1 className='text-xl font-semibold mb-2'>{p.name}</h1>
+                        <p className='text-zinc-400 text-sm mb-6'>{p.description}</p>
+
+                        <div className='flex items-end gap-1 mb-4'>
+                            <span className='text-4xl font-bold'>{p.price}</span>
+                            <span className='text-sm text-zinc-400 mb-1'>/one-time</span>
+                        </div>
+
+                        <div className='flex items-center gap-2 mb-8'>
+                            <Coins size={18} className='text-yellow-400' />
+                            <span className='font-semibold'>{p.credits} Credits</span>
+                        </div>
+
+                        <ul className='space-y-3 mb-10'>
+                            {p.features.map((f) => (
+                                <li key={f} className='flex items-center gap-2 text-sm text-zinc-300'>
+                                    <Check size={16} className='text-green-400' />
+                                    {f}
+                                </li>
+                            ))}
+                        </ul>
+
+                        <motion.button
+                            onClick={() => handlePayment(p)}
+                            whileTap={{ scale: 0.96 }}
+                            className={`w-full py-3 rounded-xl font-semibold transition 
+                            ${p.popular
+                                    ? "bg-indigo-500 hover:bg-indigo-600"
+                                    : "bg-white/10 hover:bg-white/20"
+                                }`}
+                        >
+                            {p.button}
+                        </motion.button>
+                    </motion.div>
+                ))}
+            </div>
+        </div>
+    )
+}
+
+export default Pricing

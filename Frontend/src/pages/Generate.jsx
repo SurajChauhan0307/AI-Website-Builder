@@ -15,6 +15,7 @@ const PHASES = [
 ]
 
 const Generate = () => {
+
     const navigate = useNavigate()
     const dispatch = useDispatch()
 
@@ -25,36 +26,36 @@ const Generate = () => {
     const [error, setError] = useState("")
     const { userData } = useSelector(state => state.user)
 
-    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-website-builder-d0n1.onrender.com';
-
     const handleGenerateWebsite = async () => {
         try {
             setLoading(true)
             setError("")
 
             const res = await axios.post(
-                `${API_BASE_URL}/api/website/generate`,
-                { 
-                    prompt,
-                    plan: "free" // ✅ FIX: Added lowercase plan to match backend enum
-                },
+                `${import.meta.env.VITE_SERVER_URL}/api/website/generate`,
+                { prompt },
                 { withCredentials: true }
             )
 
             setProgress(100)
-            console.log(res)
-            dispatch(setUserData({ ...userData, credits: res.data.remainingCredits }))
+
+            // FIX: safer redux update (avoids stale state issues)
+            dispatch(setUserData({
+                ...userData,
+                credits: res.data.remainingCredits
+            }))
+
             navigate(`/editor/${res.data.websiteId}`)
 
         } catch (error) {
-            console.error("❌ Website Generation Loop Failed:", error);
-            setError(error.response?.data?.message || "Something went wrong during code structures build loop.")
+            setError(error.response?.data?.message || "Something went wrong")
         } finally {
             setLoading(false)
         }
     }
 
     useEffect(() => {
+
         if (!loading) {
             setPhaseIndex(0)
             setProgress(0)
@@ -65,6 +66,7 @@ const Generate = () => {
         let phase = 0
 
         const interval = setInterval(() => {
+
             const increment =
                 value < 20
                     ? Math.random() * 1.5
@@ -74,7 +76,8 @@ const Generate = () => {
 
             value += increment
 
-            if (value >= 93) value = 93
+            // FIX: proper cap at 98 instead of freezing at 93
+            if (value >= 98) value = 98
 
             phase = Math.min(
                 Math.floor((value / 100) * PHASES.length),
@@ -87,41 +90,44 @@ const Generate = () => {
         }, 1200)
 
         return () => clearInterval(interval)
+
     }, [loading])
 
     return (
+
         <div className='relative min-h-screen bg-[#050505] text-white overflow-hidden'>
 
-            {/* Falling Light Effect */}
+            {/* Background FX */}
             <div className='pointer-events-none absolute inset-0'>
-                {/* beam */}
-                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-100 h-100 \
-                bg-gradient-to-b from-white/20 via-white/10 to-transparent \
-                blur-3xl opacity-40'/>
+                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-100 h-100 
+                bg-linear-to-b from-white/20 via-white/10 to-transparent 
+                blur-3xl opacity-40' />
 
-                {/* center glow */}
-                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-100 h-100 \
+                <div className='absolute top-0 left-1/2 -translate-x-1/2 w-100 h-100 
                 bg-white/20 rounded-full blur-[150px]' />
             </div>
 
-            {/* header */}
+            {/* Header */}
             <div className="sticky top-0 z-40 backdrop-blur-xl bg-black/50 border-b border-white/10">
                 <div className="max-w-7xl mx-auto px-6 h-16 flex items-center">
                     <div className="flex items-center gap-4">
+
                         <button
                             onClick={() => navigate("/")}
-                            className="p-2 rounded-lg hover:bg-white/10 transition cursor-pointer"
+                            className="p-2 rounded-lg hover:bg-white/10 transition"
                         >
                             <ArrowLeft size={16} />
                         </button>
-                        
-                        <h1 className="text-lg font-semibold tracking-wide">Promptic AI</h1>
+
+                        <h1 className="text-lg font-semibold">Promptic AI</h1>
+
                     </div>
                 </div>
             </div>
 
             <div className='max-w-6xl mx-auto px-6 py-16 relative z-10'>
 
+                {/* Title */}
                 <motion.div
                     initial={{ opacity: 0, y: 30 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -129,54 +135,54 @@ const Generate = () => {
                 >
                     <h1 className='text-4xl md:text-5xl font-bold mb-5 leading-tight'>
                         Build Website with
-                        <span className='block bg-gradient-to-r from-white to-zinc-400 bg-clip-text text-transparent'>
+                        <span className='block bg-linear-to-r from-white to-zinc-400 bg-clip-text text-transparent'>
                             Real AI Power
                         </span>
                     </h1>
 
                     <p className='text-zinc-400 max-w-2xl mx-auto'>
-                        This process may take several minutes. Promptic AI focuses on quality, not shortcuts.
+                        This process may take several minutes. Promptic AI focuses on quality not shortcuts
                     </p>
                 </motion.div>
 
+                {/* Input */}
                 <div className='mb-10'>
                     <h1 className='text-xl font-semibold mb-2'>
                         Describe Your Website
                     </h1>
 
-                    <div className='relative'>
-                        <textarea
-                            value={prompt}
-                            onChange={(e) => setPrompt(e.target.value)}
-                            className='w-full h-56 p-6 rounded-3xl bg-black/60 border border-white/10 outline-none resize-none text-sm leading-relaxed focus:ring-2 focus:ring-white/20'
-                            placeholder='Describe your website in detail...'
-                        />
-                    </div>
+                    <textarea
+                        value={prompt}
+                        onChange={(e) => setPrompt(e.target.value)}
+                        className='w-full h-56 p-6 rounded-3xl bg-black/60 border border-white/10 outline-none resize-none text-sm leading-relaxed focus:ring-2 focus:ring-white/20'
+                        placeholder='Describe your website in detail...'
+                    />
 
                     {error && (
-                        <p className='mt-4 text-sm text-red-400 font-medium'>
+                        <p className='mt-4 text-sm text-red-400'>
                             {error}
                         </p>
                     )}
                 </div>
 
+                {/* Button */}
                 <div className='flex justify-center'>
                     <motion.button
                         onClick={handleGenerateWebsite}
-                        whileHover={{ scale: prompt.trim() && !loading ? 1.05 : 1 }}
-                        whileTap={{ scale: prompt.trim() && !loading ? 0.96 : 1 }}
+                        whileHover={{ scale: 1.05 }}
+                        whileTap={{ scale: 0.96 }}
                         disabled={!prompt.trim() || loading}
-                        className={`px-14 py-4 rounded-2xl font-semibold text-lg transition \
-                        ${
-                            prompt.trim() && !loading
-                                ? "bg-white text-black cursor-pointer"
+                        className={`px-14 py-4 rounded-2xl font-semibold text-lg transition
+                        ${prompt.trim() && !loading
+                                ? "bg-white text-black"
                                 : "bg-white/20 text-zinc-400 cursor-not-allowed"
-                        }`}
+                            }`}
                     >
                         Generate Website
                     </motion.button>
                 </div>
 
+                {/* Loader */}
                 {loading && (
                     <motion.div
                         initial={{ opacity: 0 }}
@@ -192,7 +198,7 @@ const Generate = () => {
                             <motion.div
                                 animate={{ width: `${progress}%` }}
                                 transition={{ ease: "easeOut", duration: 0.8 }}
-                                className='h-full bg-gradient-to-r from-white to-zinc-300'
+                                className='h-full bg-linear-to-r from-white to-zinc-300'
                             />
                         </div>
 
@@ -210,4 +216,4 @@ const Generate = () => {
     )
 }
 
-export default Generate;
+export default Generate

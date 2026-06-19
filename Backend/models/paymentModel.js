@@ -7,11 +7,24 @@ const paymentSchema = new mongoose.Schema(
       ref: "User",
       required: true,
     },
-    planId: String,
-    amount: Number,
-    credits: Number,
-    razorpayOrderId: String,
-    razorpayPaymentId: String,
+    planId: {
+      type: String,
+      required: true,
+    },
+    amount: {
+      type: Number,
+      required: true,
+    },
+    credits: {
+      type: Number,
+      required: true,
+    },
+    razorpayOrderId: {
+      type: String,
+    },
+    razorpayPaymentId: {
+      type: String,
+    },
     status: {
       type: String,
       enum: ["pending", "paid", "failed"],
@@ -21,4 +34,5 @@ const paymentSchema = new mongoose.Schema(
   { timestamps: true }
 );
 
-export const Payment = mongoose.model('Payment', paymentSchema)
+// ✅ IMPORTANT: named export (matches your controller import)
+export const Payment = mongoose.model("Payment", paymentSchema);

@@ -14,16 +14,27 @@ const App = () => {
   const { userData } = useSelector(state => state.user)
   const dispatch = useDispatch()
 
-  // ✅ FIX 1: Updated variable to VITE_API_BASE_URL and attached the live Render production backend URL as backup fallback
+  // ✅ Variable yahan top-level par hona chahiye taaki poore component mein access ho sake
   const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://ai-website-builder-d0n1.onrender.com';
 
   useEffect(() => {
     const fetchUser = async () => {
+      const localToken = localStorage.getItem('token');
+      
+      // Agar token nahi hai toh request mat bhejo (401 error clear ho jayega)
+      if (!localToken) {
+        return; 
+      }
+
       try {
-        // ✅ FIX 2: Replaced VITE_SERVER_URL string interpolation with stable API_BASE_URL
         const res = await axios.get(
           `${API_BASE_URL}/api/auth/me`,
-          { withCredentials: true }
+          { 
+            withCredentials: true,
+            headers: {
+              Authorization: `Bearer ${localToken}`
+            }
+          }
         )
 
         dispatch(setUserData(res.data.user))

@@ -3,33 +3,25 @@ import { Payment } from "../models/paymentModel.js";
 import crypto from "crypto";
 import { User } from "../models/userModel.js";
 
-/* ---------------- CREATE ORDER ---------------- */
 export const createOrder = async (req, res) => {
   try {
     const { planId, amount, credits } = req.body;
 
-    if (!amount || !credits) {
+    if (!planId || !amount || !credits) {
       return res.status(400).json({ message: "Invalid plan data" });
-    }
-
-    if (!req.user || !req.user._id) {
-      return res.status(401).json({ message: "Unauthorized user" });
     }
 
     const options = {
       amount: Math.round(Number(amount) * 100),
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
-      notes: {
-        merchant_name: "Promptic Ai",
-      },
     };
 
     const razorpayOrder = await razorpayInstance.orders.create(options);
 
     await Payment.create({
       userId: req.user._id,
-      planId: planId?.toLowerCase().trim(), // ✅ FIX
+      planId,
       amount,
       credits,
       razorpayOrderId: razorpayOrder.id,
@@ -37,13 +29,11 @@ export const createOrder = async (req, res) => {
     });
 
     return res.json(razorpayOrder);
-
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
 };
 
-/* ---------------- VERIFY PAYMENT ---------------- */
 export const verifyPayment = async (req, res) => {
   try {
     const {
@@ -52,14 +42,11 @@ export const verifyPayment = async (req, res) => {
       razorpay_signature,
     } = req.body;
 
-    if (!razorpay_order_id || !razorpay_payment_id || !razorpay_signature) {
-      return res.status(400).json({ message: "Missing payment data" });
-    }
-
-    const body = razorpay_order_id + "|" + razorpay_payment_id;
+    const body =
+      razorpay_order_id + "|" + razorpay_payment_id;
 
     const expectedSignature = crypto
-      .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+      .createHmac("sha256", process.env.RAZORPAY_SECRET)
       .update(body)
       .digest("hex");
 
@@ -72,7 +59,7 @@ export const verifyPayment = async (req, res) => {
     });
 
     if (!payment) {
-      return res.status(400).json({ message: "Payment not found" });
+      return res.status(404).json({ message: "Payment not found" });
     }
 
     if (payment.status === "paid") {
@@ -83,38 +70,21 @@ export const verifyPayment = async (req, res) => {
     payment.razorpayPaymentId = razorpay_payment_id;
     await payment.save();
 
-    // ✅ SAFE PLAN NORMALIZATION (IMPORTANT FIX)
-    let safePlan = (payment.planId || "free")
-      .toString()
-      .toLowerCase()
-      .trim();
-
-    // ✅ EXTRA SAFETY CHECK
-    const validPlans = ["free", "pro", "enterprise"];
-    if (!validPlans.includes(safePlan)) {
-      safePlan = "free";
-    }
-
-    const updateUser = await User.findByIdAndUpdate(
+    const updatedUser = await User.findByIdAndUpdate(
       payment.userId,
       {
         $inc: { credits: payment.credits },
-        plan: safePlan, // ✅ FIXED ENUM SAFE VALUE
+        plan: payment.planId,
       },
       { new: true }
     );
 
     return res.json({
       success: true,
-      message: "Payment Verified and Credit added",
-      user: updateUser,
+      message: "Payment verified and credits added",
+      user: updatedUser,
     });
-
   } catch (error) {
-    console.error("❌ Error in verifyPayment:", error);
-    return res.status(500).json({
-      success: false,
-      message: error.message,
-    });
+    return res.status(500).json({ message: error.message });
   }
 };
