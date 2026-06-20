@@ -26,13 +26,16 @@ const Generate = () => {
     const [error, setError] = useState("")
     const { userData } = useSelector(state => state.user)
 
+    // FIX: Added fallback to prevent 'undefined' URL if env variable is missing
+    const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
+
     const handleGenerateWebsite = async () => {
         try {
             setLoading(true)
             setError("")
 
             const res = await axios.post(
-                `${import.meta.env.VITE_SERVER_URL}/api/website/generate`,
+                `${SERVER_URL}/api/website/generate`,
                 { prompt },
                 { withCredentials: true }
             )
