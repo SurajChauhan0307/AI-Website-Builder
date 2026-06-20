@@ -11,30 +11,26 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.set("trust proxy", 1);
-
 app.use(express.json());
 app.use(cookieParser());
 
-// 🔥 FIXED CORS CONFIGURATION
+// Dynamic CORS configuration
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow localhost and any Vercel preview or production app
       const allowedOrigins = [
         "http://localhost:5173",
         "https://ai-website-builder-nine-weld.vercel.app"
       ];
-      
-      // Allow request if no origin (like mobile/postman) OR in allowed list OR is a Vercel link
       if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
         callback(null, true);
       } else {
         callback(new Error('Not allowed by CORS'));
       }
     },
-    credentials: true, // Zaroori hai cookie/auth ke liye
+    credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-    allowedHeaders: ["Content-Type", "Authorization"], 
+    allowedHeaders: ["Content-Type", "Authorization"],
   })
 );
 

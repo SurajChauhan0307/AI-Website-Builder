@@ -7,10 +7,16 @@ const api = axios.create({
 
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
-  if (token) {
-    config.headers.Authorization = `Bearer ${token}`;
+  
+  // Extra quotes hata kar token clean karein
+  const cleanToken = token ? token.replace(/"/g, "") : null;
+
+  if (cleanToken) {
+    config.headers.Authorization = `Bearer ${cleanToken}`;
   }
   return config;
+}, (error) => {
+  return Promise.reject(error);
 });
 
 export default api;
