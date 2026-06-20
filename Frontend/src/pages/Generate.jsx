@@ -27,10 +27,14 @@ const Generate = () => {
     const { userData } = useSelector(state => state.user)
 
     const handleGenerateWebsite = async () => {
+        if (!prompt.trim()) return;
+
         try {
             setLoading(true)
             setError("")
+            setProgress(0)
 
+            // API request with your configured api instance
             const res = await api.post('/api/website/generate', { prompt })
 
             setProgress(100)
@@ -40,17 +44,20 @@ const Generate = () => {
                 credits: res.data.remainingCredits
             }))
 
-            navigate(`/editor/${res.data.websiteId}`)
+            // Short delay to show 100% progress
+            setTimeout(() => {
+                navigate(`/editor/${res.data.websiteId}`)
+            }, 500)
 
-        } catch (error) {
-            setError(error.response?.data?.message || "Something went wrong")
-        } finally {
+        } catch (err) {
+            // Enhanced error handling
+            const message = err.response?.data?.message || "Something went wrong. Please check your connection or login again.";
+            setError(message)
             setLoading(false)
         }
     }
 
     useEffect(() => {
-
         if (!loading) {
             setPhaseIndex(0)
             setProgress(0)
@@ -61,7 +68,6 @@ const Generate = () => {
         let phase = 0
 
         const interval = setInterval(() => {
-
             const increment =
                 value < 20
                     ? Math.random() * 1.5
@@ -80,15 +86,12 @@ const Generate = () => {
 
             setProgress(Math.floor(value))
             setPhaseIndex(phase)
-
         }, 1200)
 
         return () => clearInterval(interval)
-
     }, [loading])
 
     return (
-
         <div className='relative min-h-screen bg-[#050505] text-white overflow-hidden'>
 
             {/* Background FX */}
@@ -172,7 +175,7 @@ const Generate = () => {
                                 : "bg-white/20 text-zinc-400 cursor-not-allowed"
                             }`}
                     >
-                        Generate Website
+                        {loading ? "Generating..." : "Generate Website"}
                     </motion.button>
                 </div>
 

@@ -14,7 +14,7 @@ app.set("trust proxy", 1);
 app.use(express.json());
 app.use(cookieParser());
 
-// Dynamic CORS configuration
+// Dynamic CORS configuration for Vercel & Localhost
 app.use(
   cors({
     origin: (origin, callback) => {

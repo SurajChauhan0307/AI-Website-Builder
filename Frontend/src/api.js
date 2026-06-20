@@ -5,10 +5,11 @@ const api = axios.create({
   withCredentials: true,
 });
 
+// Request Interceptor: Token attach karne ke liye
 api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   
-  // Extra quotes hata kar token clean karein
+  // Clean token: Agar quotes hain toh hata dein
   const cleanToken = token ? token.replace(/"/g, "") : null;
 
   if (cleanToken) {

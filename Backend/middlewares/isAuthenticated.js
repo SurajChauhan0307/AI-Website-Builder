@@ -3,12 +3,9 @@ import { User } from "../models/userModel.js";
 
 export const isAuthenticated = async (req, res, next) => {
   try {
-    // 1. Check for token in cookies first, then Authorization header
-    let token = req.cookies?.token;
-
-    if (!token && req.headers.authorization?.startsWith("Bearer ")) {
-      token = req.headers.authorization.split(" ")[1];
-    }
+    // 1. Check for token in Authorization header, then in cookies
+    const authHeader = req.headers.authorization;
+    let token = authHeader && authHeader.startsWith("Bearer ") ? authHeader.split(" ")[1] : req.cookies?.token;
 
     // 2. If no token found
     if (!token) {
@@ -36,7 +33,6 @@ export const isAuthenticated = async (req, res, next) => {
     next();
 
   } catch (error) {
-    // Distinguish between expired and other errors for better logging
     const message = error.name === "TokenExpiredError" 
       ? "Unauthorized: Token has expired" 
       : "Unauthorized: Invalid token";
