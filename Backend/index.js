@@ -10,14 +10,11 @@ import cors from "cors";
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// 🔥 Important for Render cookies (proxy fix)
 app.set("trust proxy", 1);
 
-// middleware
 app.use(express.json());
 app.use(cookieParser());
 
-// ✅ FIXED CORS CONFIG: Added your specific Vercel production URL
 app.use(
   cors({
     origin: [
@@ -25,15 +22,14 @@ app.use(
       "https://ai-website-builder-nine-weld.vercel.app" 
     ],
     credentials: true,
+    allowedHeaders: ["Content-Type", "Authorization"], // Critical for Header Auth
   })
 );
 
-// routes
 app.use("/api/auth", authRoute);
 app.use("/api/website", websiteRoute);
 app.use("/api/payment", paymentRoute);
 
-// start server
 app.listen(PORT, async () => {
   await connectDB();
   console.log(`Server is listening at port: ${PORT}`);

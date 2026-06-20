@@ -2,7 +2,7 @@ import { ArrowLeft } from 'lucide-react'
 import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
-import axios from 'axios'
+import api from '../api' 
 import { useDispatch, useSelector } from 'react-redux'
 import { setUserData } from '../redux/userSlice'
 
@@ -26,23 +26,15 @@ const Generate = () => {
     const [error, setError] = useState("")
     const { userData } = useSelector(state => state.user)
 
-    // FIX: Added fallback to prevent 'undefined' URL if env variable is missing
-    const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:3000";
-
     const handleGenerateWebsite = async () => {
         try {
             setLoading(true)
             setError("")
 
-            const res = await axios.post(
-                `${SERVER_URL}/api/website/generate`,
-                { prompt },
-                { withCredentials: true }
-            )
+            const res = await api.post('/api/website/generate', { prompt })
 
             setProgress(100)
 
-            // FIX: safer redux update (avoids stale state issues)
             dispatch(setUserData({
                 ...userData,
                 credits: res.data.remainingCredits
@@ -79,7 +71,6 @@ const Generate = () => {
 
             value += increment
 
-            // FIX: proper cap at 98 instead of freezing at 93
             if (value >= 98) value = 98
 
             phase = Math.min(

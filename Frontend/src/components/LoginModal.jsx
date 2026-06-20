@@ -25,6 +25,7 @@ const LoginModal = ({ open, onClose }) => {
                 { withCredentials: true }
             )
 
+            // 🔥 MOBILE FIX: Ensure token is stored in localStorage immediately
             if (data?.token) {
                 localStorage.setItem('token', data.token);
             }
