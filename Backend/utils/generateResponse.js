@@ -2,71 +2,74 @@ import extractJson from "./extractJson.js";
 
 export const generateResponse = async (prompt) => {
   try {
-    // Sanity safety check for Render dashboard settings
     if (!process.env.OPENROUTER_API_KEY) {
-      throw new Error("Missing OPENROUTER_API_KEY in server environment variables panel.");
+      throw new Error(
+        "Missing OPENROUTER_API_KEY — set it in your environment variables."
+      );
     }
 
-    const res = await fetch(
-      "https://openrouter.ai/api/v1/chat/completions",
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
-          "Content-Type": "application/json",
-          "HTTP-Referer": "https://ai-website-builder-nine-weld.vercel.app", 
-          "X-Title": "Promptic AI Builder"
-        },
-        body: JSON.stringify({
-          model: "deepseek/deepseek-chat", 
-          messages: [
-            {
-              role: "system",
-              content: "Return ONLY valid JSON object representing a website template schema. No explanations, no markdown code blocks, no backticks.",
-            },
-            {
-              role: "user",
-              content: prompt,
-            },
-          ],
-          temperature: 0.2,
-        }),
-      }
-    );
+    const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.OPENROUTER_API_KEY}`,
+        "Content-Type": "application/json",
+        "HTTP-Referer":
+          process.env.FRONTEND_URL ||
+          "https://ai-website-builder-nine-weld.vercel.app",
+        "X-Title": "Promptic AI Builder",
+      },
+      body: JSON.stringify({
+        model: "deepseek/deepseek-chat",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Return ONLY a valid JSON object. No markdown, no backticks, no explanation. Output must start with { and end with }.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+        temperature: 0.2,
+      }),
+    });
 
     if (!res.ok) {
-      let errorMessage = `HTTP Error Status: ${res.status}`;
+      let errorMessage = `HTTP ${res.status}`;
       try {
         const errorData = await res.json();
         errorMessage = errorData?.error?.message || errorMessage;
-      } catch (e) {
+      } catch {
         errorMessage = await res.text();
       }
-      throw new Error(`OpenRouter API Failure: ${errorMessage}`);
+      throw new Error(`OpenRouter API Error: ${errorMessage}`);
     }
 
     const data = await res.json();
 
-    if (!data || !data.choices || data.choices.length === 0) {
-      throw new Error("Invalid or empty response choice array returned from OpenRouter endpoints.");
+    if (!data?.choices?.length) {
+      throw new Error("Empty choices array from OpenRouter");
     }
 
     const text = data.choices[0]?.message?.content;
 
     if (!text) {
-      throw new Error("Empty AI response text body layout data wrapper received.");
+      throw new Error("Empty AI response content");
     }
 
-    // Call our corrected synchronous parsing utility
+    // Parse the JSON from the AI response
     const parsed = extractJson(text);
 
     if (!parsed) {
-      throw new Error(`AI generated string text data, but failed to parse into schema JSON. Raw preview: ${text.substring(0, 100)}...`);
+      throw new Error(
+        `Failed to parse AI response as JSON. Raw preview: ${text.substring(0, 200)}`
+      );
     }
 
     return parsed;
   } catch (err) {
-    console.error("❌ ERROR inside generateResponse.js pipeline:", err.message);
-    throw err; 
+    console.error("❌ generateResponse error:", err.message);
+    throw err;
   }
 };

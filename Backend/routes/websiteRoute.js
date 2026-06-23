@@ -11,22 +11,14 @@ import {
 
 const router = express.Router();
 
-// Generate AI website
+// Protected routes (require login)
 router.post("/generate", isAuthenticated, generateWebsite);
-
-// Update website
 router.post("/update/:id", isAuthenticated, changeWebsite);
-
-// Get single website by ID
 router.get("/getbyid/:id", isAuthenticated, getWebsiteById);
-
-// Get all websites
 router.get("/getall", isAuthenticated, getAllWebsite);
-
-// Deploy website
 router.get("/deploy/:id", isAuthenticated, deployWebsite);
 
-// Get website by slug
-router.get("/getbyslug/:slug", isAuthenticated, getBySlug);
+// ✅ FIX: Public route — deployed sites must be viewable without login
+router.get("/getbyslug/:slug", getBySlug);
 
 export default router;

@@ -1,4 +1,7 @@
-import { generateResponse } from "../config/openRouter.js";
+// ✅ FIX #1: Import from utils/generateResponse.js (returns parsed JSON object)
+//    NOT from config/openRouter.js (returns raw string — that was the root cause
+//    of AI failing to build websites)
+import { generateResponse } from "../utils/generateResponse.js";
 import { User } from "../models/userModel.js";
 import { Website } from "../models/websiteModel.js";
 import extractJson from "../utils/extractJson.js";
@@ -54,7 +57,7 @@ OUTPUT FORMAT (RAW JSON ONLY)
 --------------------------------------------------
 ABSOLUTE RULES
 --------------------------------------------------
-RETURN RAW JSON ONLY
+RETURN RAW JSON ONLY — NO MARKDOWN, NO BACKTICKS, NO EXPLANATION
 `;
 
 export const generateWebsite = async (req, res) => {
@@ -66,12 +69,11 @@ export const generateWebsite = async (req, res) => {
     }
 
     const user = await User.findById(req.user._id);
-
     if (!user) {
       return res.status(400).json({ message: "User not found" });
     }
 
-    // atomic credit deduction (FIXED)
+    // Atomic credit deduction
     const updatedUser = await User.findOneAndUpdate(
       { _id: user._id, credits: { $gte: 10 } },
       { $inc: { credits: -10 } },
@@ -84,21 +86,22 @@ export const generateWebsite = async (req, res) => {
 
     const finalPrompt = masterPrompt.replace("{USER_PROMPT}", prompt.trim());
 
+    // ✅ FIX: generateResponse from utils now returns a parsed object directly.
+    // We no longer need a separate extractJson call here.
     let parsed = null;
-    let raw = "";
 
     for (let i = 0; i < 2 && !parsed; i++) {
-      raw = await generateResponse(finalPrompt);
-      parsed = await extractJson(raw);
-
-      if (!parsed) {
-        raw = await generateResponse(finalPrompt + "\nRETURN ONLY RAW JSON");
-        parsed = await extractJson(raw);
+      try {
+        parsed = await generateResponse(finalPrompt);
+      } catch (err) {
+        console.error(`Attempt ${i + 1} failed:`, err.message);
       }
     }
 
     if (!parsed?.code || !parsed?.message) {
-      return res.status(400).json({ message: "AI returned invalid response" });
+      // Refund credits if AI failed
+      await User.findByIdAndUpdate(user._id, { $inc: { credits: 10 } });
+      return res.status(500).json({ message: "AI returned invalid response. Credits refunded." });
     }
 
     const website = await Website.create({
@@ -107,16 +110,16 @@ export const generateWebsite = async (req, res) => {
       latestCode: parsed.code,
       conversation: [
         { role: "user", content: prompt },
-        { role: "ai", content: parsed.message }
-      ]
+        { role: "ai", content: parsed.message },
+      ],
     });
 
     return res.status(201).json({
       websiteId: website._id,
-      remainingCredits: updatedUser.credits
+      remainingCredits: updatedUser.credits,
     });
-
   } catch (error) {
+    console.error("generateWebsite error:", error.message);
     return res.status(500).json({ message: error.message });
   }
 };
@@ -125,11 +128,11 @@ export const getWebsiteById = async (req, res) => {
   try {
     const website = await Website.findOne({
       _id: req.params.id,
-      user: req.user._id
+      user: req.user._id,
     });
 
     if (!website) {
-      return res.status(400).json({ message: "Website not found" });
+      return res.status(404).json({ message: "Website not found" });
     }
 
     return res.status(200).json(website);
@@ -148,21 +151,15 @@ export const changeWebsite = async (req, res) => {
 
     const website = await Website.findOne({
       _id: req.params.id,
-      user: req.user._id
+      user: req.user._id,
     });
 
     if (!website) {
-      return res.status(400).json({ message: "Website not found" });
-    }
-
-    const user = await User.findById(req.user._id);
-
-    if (!user) {
-      return res.status(400).json({ message: "User not found" });
+      return res.status(404).json({ message: "Website not found" });
     }
 
     const updatedUser = await User.findOneAndUpdate(
-      { _id: user._id, credits: { $gte: 5 } },
+      { _id: req.user._id, credits: { $gte: 5 } },
       { $inc: { credits: -5 } },
       { new: true }
     );
@@ -180,44 +177,41 @@ ${website.latestCode}
 USER REQUEST:
 ${prompt}
 
-RETURN RAW JSON ONLY:
+RETURN RAW JSON ONLY — NO MARKDOWN, NO BACKTICKS:
 {
-  "message":"Short confirmation",
-  "code":"<UPDATED FULL HTML>"
+  "message": "Short confirmation",
+  "code": "<UPDATED FULL HTML>"
 }
 `;
 
     let parsed = null;
-    let raw = "";
 
     for (let i = 0; i < 2 && !parsed; i++) {
-      raw = await generateResponse(updatePrompt);
-      parsed = await extractJson(raw);
-
-      if (!parsed) {
-        raw = await generateResponse(updatePrompt + "\nRETURN ONLY RAW JSON");
-        parsed = await extractJson(raw);
+      try {
+        parsed = await generateResponse(updatePrompt);
+      } catch (err) {
+        console.error(`Update attempt ${i + 1} failed:`, err.message);
       }
     }
 
     if (!parsed?.code || !parsed?.message) {
-      return res.status(400).json({ message: "AI returned invalid response" });
+      // Refund credits
+      await User.findByIdAndUpdate(req.user._id, { $inc: { credits: 5 } });
+      return res.status(500).json({ message: "AI returned invalid response. Credits refunded." });
     }
 
     website.conversation.push(
       { role: "user", content: prompt },
       { role: "ai", content: parsed.message }
     );
-
     website.latestCode = parsed.code;
     await website.save();
 
     return res.status(200).json({
       message: parsed.message,
       code: parsed.code,
-      remainingCredits: updatedUser.credits
+      remainingCredits: updatedUser.credits,
     });
-
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
@@ -225,7 +219,9 @@ RETURN RAW JSON ONLY:
 
 export const getAllWebsite = async (req, res) => {
   try {
-    const websites = await Website.find({ user: req.user._id });
+    const websites = await Website.find({ user: req.user._id }).sort({
+      createdAt: -1,
+    });
     return res.status(200).json(websites);
   } catch (error) {
     return res.status(500).json({ message: error.message });
@@ -236,43 +232,48 @@ export const deployWebsite = async (req, res) => {
   try {
     const website = await Website.findOne({
       _id: req.params.id,
-      user: req.user._id
+      user: req.user._id,
     });
 
     if (!website) {
-      return res.status(400).json({ message: "Website not found" });
+      return res.status(404).json({ message: "Website not found" });
     }
 
     if (!website.slug) {
       website.slug =
-        website.title.toLowerCase().replace(/[^a-z0-9]/g, "").slice(0, 40) +
+        website.title
+          .toLowerCase()
+          .replace(/[^a-z0-9]/g, "")
+          .slice(0, 40) +
         "-" +
         Date.now().toString(36) +
         website._id.toString().slice(-4);
     }
 
+    const frontendUrl =
+      process.env.FRONTEND_URL || "https://ai-website-builder-nine-weld.vercel.app";
+
     website.deployed = true;
-    website.deployUrl = `${process.env.FRONTEND_URL}/site/${website.slug}`;
+    website.deployUrl = `${frontendUrl}/site/${website.slug}`;
 
     await website.save();
 
-    return res.status(200).json({
-      url: website.deployUrl
-    });
-
+    return res.status(200).json({ url: website.deployUrl });
   } catch (error) {
     return res.status(500).json({ message: error.message });
   }
 };
 
+// ✅ FIX #2: getBySlug is PUBLIC — no auth required for deployed sites
 export const getBySlug = async (req, res) => {
   try {
     const website = await Website.findOne({
-      slug: req.params.slug
+      slug: req.params.slug,
+      deployed: true, // Only serve actually-deployed sites
     });
 
     if (!website) {
-      return res.status(400).json({ message: "Website not found" });
+      return res.status(404).json({ message: "Website not found or not deployed" });
     }
 
     return res.status(200).json(website);
