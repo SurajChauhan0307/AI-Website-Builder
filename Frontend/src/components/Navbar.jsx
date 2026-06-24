@@ -1,53 +1,52 @@
-import { AnimatePresence, motion } from "framer-motion"
-import { useState, useEffect, useRef } from "react"
-import { useDispatch, useSelector } from "react-redux" // ✅ Sahi import
-import { useNavigate } from "react-router-dom"
-import axios from "axios" // ✅ Sahi import (HTTP library)
-import { Coins, CreditCard } from "lucide-react"
-import LoginModal from "./LoginModal"
-import { clearUserData } from "../redux/userSlice"
+import { AnimatePresence, motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { Coins } from 'lucide-react';
+import LoginModal from './LoginModal';
+import { clearUserData } from '../redux/userSlice';
+import api from '../api'; // ✅ use shared api instance
 
 const Navbar = () => {
-  const [openLogin, setOpenLogin] = useState(false)
-  const [openProfile, setOpenProfile] = useState(false)
+  const [openLogin,   setOpenLogin]   = useState(false);
+  const [openProfile, setOpenProfile] = useState(false);
 
-  // Redux selection
-  const { userData, isLoggedIn } = useSelector(state => state.user)
+  const { userData, isLoggedIn } = useSelector((s) => s.user);
+  const dispatch     = useDispatch();
+  const navigate     = useNavigate();
+  const dropdownRef  = useRef(null);
 
-  const dispatch = useDispatch()
-  const navigate = useNavigate()
-  const dropdownRef = useRef(null)
+  // Close dropdown on outside click
+  useEffect(() => {
+    const handler = (e) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
+        setOpenProfile(false);
+      }
+    };
+    if (openProfile) document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, [openProfile]);
 
   const handleLogout = async () => {
+    // 1. Clear Redux state
     dispatch(clearUserData());
     setOpenProfile(false);
 
+    // 2. Clear all persisted local data
     localStorage.removeItem('persist:ai-website-builder');
     localStorage.removeItem('token');
-    localStorage.clear();
-    sessionStorage.clear();
 
+    // 3. Tell the server to clear the HTTP-only cookie
     try {
-      const SERVER_URL = import.meta.env.VITE_SERVER_URL || "http://localhost:8000";
-      await axios.get(`${SERVER_URL}/api/auth/logout`, { withCredentials: true });
-    } catch (error) {
-      console.log("Logout cleanup:", error);
-    } finally {
-      window.location.replace("/");
+      await api.get('/api/auth/logout');
+    } catch {
+      // non-critical
     }
+
+    window.location.replace('/');
   };
 
-  useEffect(() => {
-    const handleClickOutside = (e) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
-        setOpenProfile(false)
-      }
-    }
-    if (openProfile) document.addEventListener("mousedown", handleClickOutside)
-    return () => document.removeEventListener("mousedown", handleClickOutside)
-  }, [openProfile])
-
-  const isUserAuthenticated = isLoggedIn || (userData && userData.email);
+  const isAuthenticated = isLoggedIn || !!userData?.email;
 
   return (
     <>
@@ -58,18 +57,31 @@ const Navbar = () => {
         className="fixed top-0 left-0 right-0 z-50 backdrop-blur-xl bg-black/40 border-b border-white/10"
       >
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <div onClick={() => navigate("/")} className="flex items-center gap-2 cursor-pointer bg-white/5 p-2 px-4 rounded-2xl border border-zinc-600">
+          {/* Logo */}
+          <div
+            onClick={() => navigate('/')}
+            className="flex items-center gap-2 cursor-pointer bg-white/5 p-2 px-4 rounded-2xl border border-zinc-600"
+          >
             <img src="/ai2.png" className="w-7" alt="Logo" />
-            <span className="font-semibold text-lg bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">Promptic AI</span>
+            <span className="font-semibold text-lg bg-gradient-to-r from-purple-400 to-indigo-400 bg-clip-text text-transparent">
+              Promptic AI
+            </span>
           </div>
 
+          {/* Right side */}
           <div className="flex items-center gap-5">
-            <button onClick={() => navigate("/pricing")} className="text-zinc-400 hover:text-white text-sm font-medium transition mr-1 hidden sm:block">Pricing</button>
+            <button
+              onClick={() => navigate('/pricing')}
+              className="text-zinc-400 hover:text-white text-sm font-medium transition mr-1 hidden sm:block"
+            >
+              Pricing
+            </button>
 
-            {isUserAuthenticated && userData?.email && (
+            {/* Credits badge */}
+            {isAuthenticated && userData?.email && (
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                onClick={() => navigate("/pricing")}
+                onClick={() => navigate('/pricing')}
                 className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-white/5 border border-white/10 text-sm cursor-pointer hover:bg-white/10 transition"
               >
                 <Coins size={14} className="text-yellow-400" />
@@ -78,12 +90,21 @@ const Navbar = () => {
               </motion.div>
             )}
 
-            {isUserAuthenticated && userData?.email ? (
+            {/* Avatar / Login */}
+            {isAuthenticated && userData?.email ? (
               <div className="relative" ref={dropdownRef}>
-                <button onClick={() => setOpenProfile(!openProfile)} className="flex items-center">
+                <button
+                  onClick={() => setOpenProfile((p) => !p)}
+                  className="flex items-center"
+                >
                   <img
                     className="w-9 h-9 rounded-full border border-white/20 object-cover hover:scale-105 transition"
-                    src={userData?.avatar || `https://ui-avatars.com/api/?name=${userData?.name || "User"}`}
+                    src={
+                      userData?.avatar ||
+                      `https://ui-avatars.com/api/?name=${encodeURIComponent(
+                        userData?.name || 'User'
+                      )}&background=6366f1&color=fff`
+                    }
                     alt="Profile"
                   />
                 </button>
@@ -93,14 +114,32 @@ const Navbar = () => {
                     <motion.div
                       initial={{ opacity: 0, y: -10, scale: 0.95 }}
                       animate={{ opacity: 1, y: 0, scale: 1 }}
-                      className="absolute right-0 mt-3 w-60 rounded-xl bg-[#0b0b0b] border border-white/10 shadow-2xl overflow-hidden"
+                      exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                      className="absolute right-0 mt-3 w-60 rounded-xl bg-[#0b0b0b] border border-white/10 shadow-2xl overflow-hidden z-50"
                     >
                       <div className="px-4 py-3 border-b border-white/10">
-                        <p className="text-sm font-medium text-white">{userData?.name}</p>
-                        <p className="text-xs text-zinc-500">{userData?.email}</p>
+                        <p className="text-sm font-medium text-white truncate">
+                          {userData?.name}
+                        </p>
+                        <p className="text-xs text-zinc-500 truncate">
+                          {userData?.email}
+                        </p>
                       </div>
-                      <button onClick={() => { setOpenProfile(false); navigate("/dashboard") }} className="w-full px-4 py-3 text-left text-sm hover:bg-white/5 text-white">Dashboard</button>
-                      <button onClick={handleLogout} className="w-full px-4 py-3 text-left text-sm hover:bg-white/5 text-red-400 border-t border-white/5">Logout</button>
+                      <button
+                        onClick={() => {
+                          setOpenProfile(false);
+                          navigate('/dashboard');
+                        }}
+                        className="w-full px-4 py-3 text-left text-sm hover:bg-white/5 text-white"
+                      >
+                        Dashboard
+                      </button>
+                      <button
+                        onClick={handleLogout}
+                        className="w-full px-4 py-3 text-left text-sm hover:bg-white/5 text-red-400 border-t border-white/5"
+                      >
+                        Logout
+                      </button>
                     </motion.div>
                   )}
                 </AnimatePresence>
@@ -109,7 +148,7 @@ const Navbar = () => {
               <motion.button
                 whileTap={{ scale: 0.95 }}
                 onClick={() => setOpenLogin(true)}
-                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-semibold text-sm text-white"
+                className="px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-700 font-semibold text-sm text-white transition"
               >
                 Login
               </motion.button>
@@ -118,9 +157,11 @@ const Navbar = () => {
         </div>
       </motion.nav>
 
-      {openLogin && <LoginModal open={openLogin} onClose={() => setOpenLogin(false)} />}
+      {openLogin && (
+        <LoginModal open={openLogin} onClose={() => setOpenLogin(false)} />
+      )}
     </>
-  )
-}
+  );
+};
 
-export default Navbar
+export default Navbar;
