@@ -7,19 +7,17 @@ const BASE_URL =
 
 const api = axios.create({
   baseURL: BASE_URL,
-  withCredentials: true, // send cookies on every request
-  timeout: 120000,       // 2 min — AI generation can be slow
+  withCredentials: true,
+  timeout: 120000, // 2 min — AI generation can be slow
 });
 
 // ─── REQUEST INTERCEPTOR ──────────────────────────────────────────────────────
 // Attach JWT from localStorage on every request as Authorization: Bearer <token>
-// This is the fallback for cross-origin deploys where cookies are blocked.
 api.interceptors.request.use(
   (config) => {
     const raw = localStorage.getItem('token');
     if (raw) {
-      // Strip any accidental surrounding quotes saved by older code
-      const token = raw.replace(/^"|"$/g, '');
+      const token = raw.replace(/^"|"$/g, ''); // strip accidental surrounding quotes
       config.headers.Authorization = `Bearer ${token}`;
     }
     return config;
@@ -28,16 +26,16 @@ api.interceptors.request.use(
 );
 
 // ─── RESPONSE INTERCEPTOR ────────────────────────────────────────────────────
-// On 401 Unauthorized: clear stale auth state and send user to home page.
+// On 401: clear stale auth and redirect to home.
+// NOTE: App.jsx startup /me check uses plain axios (not this instance)
+// so a cold-start 401 won't accidentally log the user out.
 api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear stale token + persisted redux state
       localStorage.removeItem('token');
       localStorage.removeItem('persist:ai-website-builder');
 
-      // Only redirect if not already on the home page
       if (window.location.pathname !== '/') {
         window.location.href = '/';
       }
